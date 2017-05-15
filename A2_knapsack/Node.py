@@ -9,3 +9,6 @@ class TreeNode:
         self.right = None
         self.value = None
         self.depth = 0
+
+    def __lt__(self, other):
+        return self.weight < other.weight

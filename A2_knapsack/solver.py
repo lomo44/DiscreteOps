@@ -1,6 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from Node import *
+from A2_knapsack.Node import TreeNode
+import queue
+import random
+import math
+import copy
 
 from collections import namedtuple
 Item = namedtuple("Item", ['index', 'value', 'weight','density'])
@@ -40,25 +44,43 @@ def greedy(items,capacity):
 
     return taken,value
 
+upper_bound_cache_hit = 0
 def tree(items ,capacity):
+
 
     taken, greedy_value = greedy(items,capacity)
 
-    def get_upper_bound(index, sub_capacity):
+    sorted_items = sorted(items, reverse=True, key=lambda x: x.density)
+    potential_cache = []
+    upper_bound_cache = {}
+    potential_cache.append(sorted_items)
 
-        sub_items = sorted(items[index:], reverse=True, key=lambda x: x.density)
-        # for i in range(0,index):
-        #     sub_items.remove(items[i])
-        temp = sub_capacity
-        upper_bound = 0
-        for item in sub_items:
-            if item.weight <= sub_capacity :
-                weight = min(item.weight, temp)
-                temp -= weight
-                upper_bound += weight * item.density
-                if temp == 0:
-                    return upper_bound
-        return upper_bound
+    for i in range(0,len(items)):
+        sorted_items.remove(items[i])
+        potential_cache.append(sorted_items[:])
+
+    def get_upper_bound(index, sub_capacity):
+        if index not in upper_bound_cache:
+            upper_bound_cache[index] = {}
+        if sub_capacity not in upper_bound_cache[index]:
+            upper_bound_cache[index][sub_capacity] = -1
+        if upper_bound_cache[index][sub_capacity] != -1:
+            global upper_bound_cache_hit
+            upper_bound_cache_hit = upper_bound_cache_hit+1
+            return upper_bound_cache[index][sub_capacity]
+        else:
+            temp = sub_capacity
+            upper_bound = 0
+            for item in potential_cache[index]:
+                if item.weight <= sub_capacity :
+                    weight = min(item.weight, temp)
+                    temp -= weight
+                    upper_bound += weight * item.density
+                    if temp == 0:
+                        upper_bound_cache[index][sub_capacity] = upper_bound
+                        return upper_bound
+            upper_bound_cache[index][sub_capacity] = upper_bound
+            return upper_bound
 
     # sort items by weight
 
@@ -82,6 +104,7 @@ def tree(items ,capacity):
                 nodeCount+=1
                 newNode.parrent = current_node
                 current_node.left = newNode
+                #print("Node Count: ", nodeCount)
                 # creating left node
                 current_node.left.weight = current_node.weight - items[current_node.depth].weight
                 if current_node.left.weight >= 0:
@@ -103,6 +126,8 @@ def tree(items ,capacity):
             elif current_node.right is None:
                 # populate right node
                 newNode = TreeNode()
+                nodeCount += 1
+                #print("Node Count: ",nodeCount)
                 newNode.parrent = current_node
                 newNode.depth = current_node.depth + 1
                 current_node.right = newNode
@@ -134,8 +159,165 @@ def tree(items ,capacity):
                 result_capacity += items[parent.depth].weight
             current_leaf = parent
 
+    print("Node Count: ", nodeCount)
+    print("Upper Bound Cache Hits: ",upper_bound_cache_hit )
     return taken,bestValue
 
+def tree2(items, capcity):
+    # breath-first search
+    #items = list(map(lambda x: Item(x.index,x.value,x.weight,x.density), items))
+    taken, baseline_value = greedy(items, capcity)
+    sorted_items = sorted(items, reverse=True, key=lambda x: x.density)
+    #print("BaseLine: ",baseline_value)
+    potential_cache = []
+    upper_bound_cache = {}
+    potential_cache.append(sorted_items[:])
+    for i in range(0,len(items)):
+        sorted_items.remove(items[i])
+        potential_cache.append(sorted_items[:])
+    def get_upper_bound(index, sub_capacity):
+        if index not in upper_bound_cache:
+            upper_bound_cache[index] = {}
+        if sub_capacity not in upper_bound_cache[index]:
+            upper_bound_cache[index][sub_capacity] = -1
+        if upper_bound_cache[index][sub_capacity] != -1:
+            global upper_bound_cache_hit
+            upper_bound_cache_hit = upper_bound_cache_hit+1
+            return upper_bound_cache[index][sub_capacity]
+        else:
+            temp = sub_capacity
+            upper_bound = 0
+            for item in potential_cache[index]:
+                if item.weight <= sub_capacity:
+                    weight = min(item.weight, temp)
+                    temp -= weight
+                    upper_bound += weight * item.density
+                    if temp == 0:
+                        upper_bound_cache[index][sub_capacity] = upper_bound
+                        return upper_bound
+            upper_bound_cache[index][sub_capacity] = upper_bound
+            return upper_bound
+
+    current_best = baseline_value
+    current_best_node = None
+    nodeQueue = queue.PriorityQueue()
+
+    rootNode = TreeNode()
+    rootNode.depth = 0
+    rootNode.isRoot = True
+    rootNode.value = 0
+    rootNode.weight = capcity
+    rootNode.potential=get_upper_bound(0,capcity)
+
+    nodeQueue.put((1/rootNode.potential,rootNode))
+
+    while nodeQueue.qsize() != 0:
+        current_node = nodeQueue.get()[1]
+        if current_node.potential > current_best:
+            if current_node.left is None:
+                target_weight = current_node.weight - items[current_node.depth].weight
+                if target_weight >= 0:
+                    target_value = current_node.value + items[current_node.depth].value
+                    target_potential = get_upper_bound(current_node.depth+1, target_weight) + target_value
+                    if target_potential > current_best:
+                        newNode = TreeNode()
+                        newNode.depth = current_node.depth + 1
+                        newNode.potential = target_potential
+                        newNode.value = target_value
+                        newNode.weight = target_weight
+                        newNode.parrent = current_node
+                        current_node.left = newNode
+                        if target_potential > target_value:
+                            nodeQueue.put((1/newNode.potential,newNode))
+                        if target_potential == target_value:
+                            if target_value > current_best:
+                                print("Current Best: {0}, depth: {1}".format(target_value,current_node.depth))
+                                current_best = target_value
+                                current_best_node = newNode
+                pass
+            if current_node.right is None:
+                target_potential = get_upper_bound(current_node.depth+1, current_node.weight) + current_node.value
+                if target_potential > current_best:
+                    newNode = TreeNode()
+                    newNode.depth = current_node.depth + 1
+                    newNode.potential = target_potential
+                    newNode.value = current_node.value
+                    newNode.weight = current_node.weight
+                    newNode.parrent = current_node
+                    current_node.right = newNode
+                    if target_potential > target_value:
+                        nodeQueue.put((1 / newNode.potential, newNode))
+                    if target_potential == target_value:
+                        if target_value > current_best:
+                            print("Current Best: {0}, depth: {1}".format(target_value, current_node.depth))
+                            current_best = target_value
+                            current_best_node = newNode
+
+    result_capacity = 0
+    if current_best != baseline_value:
+        taken = [0] * len(items)
+        while current_best_node.isRoot == False:
+            parent = current_best_node.parrent
+            if current_best_node == parent.left:
+                taken[parent.depth] = 1
+                result_capacity += items[parent.depth].weight
+            current_best_node = parent
+
+    return taken,current_best
+
+
+def dp_1(items,capacity):
+    sorted_items = sorted(items, key=lambda x:x.weight)
+    min_weight = sorted_items[0].weight
+    max_weight = sorted_items[-1].weight
+    min_diff = sys.maxsize
+    for index in range(1,len(sorted_items)-1):
+        if sorted_items[index+1].weight - sorted_items[index].weight < min_diff:
+           min_diff = sorted_items[index+1].weight - sorted_items[index].weight
+    print("Min: {0}, Min: {1}, min_diff: {2}".format(min_weight,max_weight,min_diff))
+    print("Capacity: {0}".format(capacity))
+    # build up table
+    zero_table = {}
+    lower_bound = min_weight
+    upper_bound = capacity
+    while lower_bound != upper_bound:
+        print(lower_bound)
+        zero_table[lower_bound] = 0
+        lower_bound +=min(min_diff, capacity-lower_bound)
+    zero_table[upper_bound] = 0
+
+    index = 0
+    length = len(sorted_items)
+    previous_table = copy.deepcopy(zero_table)
+    table_list = []
+    table_list.append(zero_table)
+    while index != length:
+        newTable = copy.deepcopy(zero_table)
+        for eachCapcity in sorted(previous_table.keys()):
+            if items[index].weight <= eachCapcity:
+                gap_weight = math.ceil((eachCapcity-items[index].weight)/min_diff)*min_diff
+                previous_value = 0
+                if gap_weight >= min_weight:
+                    previous_index = int((gap_weight-min_weight)/min_diff)
+                    previous_value = previous_table[min_weight+previous_index*min_diff]
+                newTable[eachCapcity] = max(previous_table[eachCapcity], items[index].value + previous_value)
+            else:
+                newTable[eachCapcity] = previous_table[eachCapcity]
+        index+=1
+        table_list.append(newTable)
+        previous_table = newTable
+    # trace back
+    current_weight = capacity
+    index = length
+    taken = [0] * length
+    value = table_list[index][current_weight]
+    while index != 0 and current_weight != 0:
+        if table_list[index][current_weight] != table_list[index-1][current_weight]:
+            taken[index-1] = 1
+            current_weight -= items[index-1].weight
+        index-=1
+    return taken,value
+    pass
 
 def solve_it(input_data):
     # Modify this code to run your optimization algorithm
@@ -151,7 +333,7 @@ def solve_it(input_data):
     if base:
         taken,value = greedy(items, capacity)
     else:
-        taken, value = tree(items, capacity)
+        taken, value = tree2(items, capacity)
     return formOuputData(taken, value, not base);
     #return formOuputData(taken, value, False);
 
