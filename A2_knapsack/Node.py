@@ -11,4 +11,4 @@ class TreeNode:
         self.depth = 0
 
     def __lt__(self, other):
-        return self.weight < other.weight
+        return self.depth > other.depth

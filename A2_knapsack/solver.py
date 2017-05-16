@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from A2_knapsack.Node import TreeNode
 import queue
+import heapq
 import random
 import math
 import copy
@@ -165,16 +166,68 @@ def tree(items ,capacity):
 
 def tree2(items, capcity):
     # breath-first search
+    items = sorted(items, reverse=False, key=lambda x: x.index)
     #items = list(map(lambda x: Item(x.index,x.value,x.weight,x.density), items))
-    taken, baseline_value = greedy(items, capcity)
+    baseline_value = -1
+    taken = None
+    for i in range(0,9):
+        taken_temp, baseline_value_temp = greedy(items, capcity)
+        random.shuffle(items)
+        if baseline_value_temp > baseline_value:
+            baseline_value = baseline_value_temp
+            taken = taken_temp
+    print("Baseline: ", baseline_value)
     sorted_items = sorted(items, reverse=True, key=lambda x: x.density)
-    #print("BaseLine: ",baseline_value)
     potential_cache = []
     upper_bound_cache = {}
     potential_cache.append(sorted_items[:])
     for i in range(0,len(items)):
         sorted_items.remove(items[i])
         potential_cache.append(sorted_items[:])
+    def get_upper_bound_LR(index, left_capacity, right_capacity):
+        left_bound = 0
+        right_bound = 0
+        if index not in upper_bound_cache:
+            upper_bound_cache[index] = {}
+        else:
+            if left_capacity not in upper_bound_cache[index]:
+                upper_bound_cache[index][left_capacity] = 0
+            else:
+                left_bound = upper_bound_cache[index][left_capacity]
+                left_capacity = 0
+            if right_capacity not in upper_bound_cache[index]:
+                upper_bound_cache[index][right_capacity] = 0
+            else:
+                right_bound = upper_bound_cache[index][right_capacity]
+                right_capacity = 0
+        if right_capacity == 0 and left_capacity == 0:
+            return left_bound, right_bound
+        else:
+            temp_left_capacity = left_capacity
+            temp_right_capacity = right_capacity
+            for item in potential_cache[index]:
+                if item.weight <= left_capacity:
+                    if item.weight <= temp_left_capacity:
+                        left_bound+=item.value
+                        temp_left_capacity-=item.weight
+                    else:
+                        weight = min(item.weight, temp_left_capacity)
+                        temp_left_capacity-= weight
+                        left_bound += weight * item.density
+                if item.weight <= right_capacity:
+                    if item.weight <= temp_right_capacity:
+                        right_bound+=item.value
+                        temp_right_capacity-=item.weight
+                    else:
+                        weight = min(item.weight, temp_right_capacity)
+                        temp_right_capacity-= weight
+                        right_bound += weight * item.density
+                if temp_left_capacity == 0 and temp_right_capacity == 0:
+                    break
+        upper_bound_cache[index][left_capacity] = left_bound
+        upper_bound_cache[index][right_capacity] = right_bound
+        return left_bound, right_bound
+
     def get_upper_bound(index, sub_capacity):
         if index not in upper_bound_cache:
             upper_bound_cache[index] = {}
@@ -189,9 +242,13 @@ def tree2(items, capcity):
             upper_bound = 0
             for item in potential_cache[index]:
                 if item.weight <= sub_capacity:
-                    weight = min(item.weight, temp)
-                    temp -= weight
-                    upper_bound += weight * item.density
+                    if item.weight <= temp:
+                        upper_bound += item.value
+                        temp-= item.weight
+                    else:
+                        weight = min(item.weight, temp)
+                        temp -= weight
+                        upper_bound += weight * item.density
                     if temp == 0:
                         upper_bound_cache[index][sub_capacity] = upper_bound
                         return upper_bound
@@ -200,7 +257,7 @@ def tree2(items, capcity):
 
     current_best = baseline_value
     current_best_node = None
-    nodeQueue = queue.PriorityQueue()
+    nodeQueue = []
 
     rootNode = TreeNode()
     rootNode.depth = 0
@@ -209,50 +266,65 @@ def tree2(items, capcity):
     rootNode.weight = capcity
     rootNode.potential=get_upper_bound(0,capcity)
 
-    nodeQueue.put((1/rootNode.potential,rootNode))
+    heapq.heappush(nodeQueue,(1/rootNode.potential,rootNode))
 
-    while nodeQueue.qsize() != 0:
-        current_node = nodeQueue.get()[1]
+    while len(nodeQueue) != 0:
+        current_node = heapq.heappop(nodeQueue)[1]
         if current_node.potential > current_best:
-            if current_node.left is None:
-                target_weight = current_node.weight - items[current_node.depth].weight
-                if target_weight >= 0:
-                    target_value = current_node.value + items[current_node.depth].value
-                    target_potential = get_upper_bound(current_node.depth+1, target_weight) + target_value
-                    if target_potential > current_best:
-                        newNode = TreeNode()
-                        newNode.depth = current_node.depth + 1
-                        newNode.potential = target_potential
-                        newNode.value = target_value
-                        newNode.weight = target_weight
-                        newNode.parrent = current_node
-                        current_node.left = newNode
-                        if target_potential > target_value:
-                            nodeQueue.put((1/newNode.potential,newNode))
-                        if target_potential == target_value:
-                            if target_value > current_best:
-                                print("Current Best: {0}, depth: {1}".format(target_value,current_node.depth))
-                                current_best = target_value
-                                current_best_node = newNode
-                pass
-            if current_node.right is None:
-                target_potential = get_upper_bound(current_node.depth+1, current_node.weight) + current_node.value
-                if target_potential > current_best:
+            target_weight_left = current_node.weight - items[current_node.depth].weight
+            target_potential_left,target_potential_right = get_upper_bound_LR(current_node.depth+1, max(0,target_weight_left),current_node.weight)
+            target_potential_right+=current_node.value
+            if target_weight_left >= 0:
+                target_value = current_node.value + items[current_node.depth].value
+                target_potential_left += target_value
+                if target_potential_left > current_best:
                     newNode = TreeNode()
                     newNode.depth = current_node.depth + 1
-                    newNode.potential = target_potential
-                    newNode.value = current_node.value
-                    newNode.weight = current_node.weight
+                    newNode.potential = target_potential_left
+                    newNode.value = target_value
+                    newNode.weight = target_weight_left
                     newNode.parrent = current_node
-                    current_node.right = newNode
-                    if target_potential > target_value:
-                        nodeQueue.put((1 / newNode.potential, newNode))
-                    if target_potential == target_value:
-                        if target_value > current_best:
-                            print("Current Best: {0}, depth: {1}".format(target_value, current_node.depth))
-                            current_best = target_value
-                            current_best_node = newNode
+                    if target_potential_left == target_value or target_value > current_best:
+                        print("Current Best: {0}, depth: {1}".format(target_value,current_node.depth))
+                        current_best = target_value
+                        current_best_node = newNode
+                    if target_potential_left > target_value:
+                        current_node.left = newNode
+                        heapq.heappush(nodeQueue,(1/newNode.potential,newNode))
+                        #nodeQueue.put_nowait((1/newNode.potential,newNode))
+                    else:
+                        del newNode
 
+            if target_potential_right > current_best:
+                newNode = TreeNode()
+                newNode.depth = current_node.depth + 1
+                newNode.potential = target_potential_right
+                newNode.value = current_node.value
+                newNode.weight = current_node.weight
+                newNode.parrent = current_node
+                if target_potential_right == newNode.value or target_value > current_best:
+                    print("Current Best: {0}, depth: {1}".format(target_value, current_node.depth))
+                    del current_best_node
+                    current_best = target_value
+                    current_best_node = newNode
+                if target_potential_right > newNode.value:
+                    current_node.right = newNode
+                    heapq.heappush(nodeQueue, (1 / newNode.potential, newNode))
+                else:
+                    del newNode
+        else:
+            if current_node.parrent != None:
+                if current_node.parrent.left == current_node:
+                    current_node.parrent.left = None
+                if current_node.parrent.right == current_node:
+                    current_node.parrent.right = None
+            if current_node.left != None:
+                current_node.left.parrent = None
+                current_node.left = None
+            if current_node.right != None:
+                current_node.right.parrent = None
+                current_node.right = None
+            del current_node
     result_capacity = 0
     if current_best != baseline_value:
         taken = [0] * len(items)
