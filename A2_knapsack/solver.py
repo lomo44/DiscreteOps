@@ -348,48 +348,40 @@ def dp_1(items,capacity):
            min_diff = sorted_items[index+1].weight - sorted_items[index].weight
     print("Min: {0}, Min: {1}, min_diff: {2}".format(min_weight,max_weight,min_diff))
     print("Capacity: {0}".format(capacity))
-    # build up table
-    zero_table = {}
-    lower_bound = min_weight
-    upper_bound = capacity
-    while lower_bound != upper_bound:
-        print(lower_bound)
-        zero_table[lower_bound] = 0
-        lower_bound +=min(min_diff, capacity-lower_bound)
-    zero_table[upper_bound] = 0
+    finaltable = []
+    # create zero table
+    finaltable.append([0]*(capacity-min_weight+1))
 
-    index = 0
-    length = len(sorted_items)
-    previous_table = copy.deepcopy(zero_table)
-    table_list = []
-    table_list.append(zero_table)
-    while index != length:
-        newTable = copy.deepcopy(zero_table)
-        for eachCapcity in sorted(previous_table.keys()):
-            if items[index].weight <= eachCapcity:
-                gap_weight = math.ceil((eachCapcity-items[index].weight)/min_diff)*min_diff
-                previous_value = 0
-                if gap_weight >= min_weight:
-                    previous_index = int((gap_weight-min_weight)/min_diff)
-                    previous_value = previous_table[min_weight+previous_index*min_diff]
-                newTable[eachCapcity] = max(previous_table[eachCapcity], items[index].value + previous_value)
+    for index in range(1,len(items)+1):
+        newvalues = []
+        for sub_capacity in range(min_weight, capacity+1):
+            if items[index-1].weight <= sub_capacity:
+                gapweight = sub_capacity-items[index-1].weight
+                gapvalue = 0
+                if gapweight >= min_weight:
+                    gapvalue = finaltable[index-1][gapweight-min_weight]
+                bestvalue = max(finaltable[index-1][sub_capacity-min_weight], items[index-1].value + gapvalue)
+                newvalues.append(bestvalue)
             else:
-                newTable[eachCapcity] = previous_table[eachCapcity]
-        index+=1
-        table_list.append(newTable)
-        previous_table = newTable
-    # trace back
+                newvalues.append(finaltable[index-1][sub_capacity-min_weight])
+        finaltable.append(newvalues)
+    #back tracking
     current_weight = capacity
-    index = length
-    taken = [0] * length
-    value = table_list[index][current_weight]
-    while index != 0 and current_weight != 0:
-        if table_list[index][current_weight] != table_list[index-1][current_weight]:
-            taken[index-1] = 1
-            current_weight -= items[index-1].weight
-        index-=1
+    final_item = len(items)
+    taken = []
+    value = finaltable[final_item][current_weight-min_weight]
+    while current_weight != 0 and final_item !=0:
+        if finaltable[final_item][current_weight-min_weight] == finaltable[final_item-1][current_weight-min_weight]:
+            taken = [0]+taken
+            pass
+        else:
+            taken = [1]+taken
+            current_weight -= items[final_item-1].weight
+        final_item -=1
+    while len(taken) != len(items):
+        taken = [0] + taken
+
     return taken,value
-    pass
 
 def solve_it(input_data):
     # Modify this code to run your optimization algorithm
@@ -405,7 +397,7 @@ def solve_it(input_data):
     if base:
         taken,value = greedy(items, capacity)
     else:
-        taken, value = tree2(items, capacity)
+        taken, value = dp_1(items, capacity)
     return formOuputData(taken, value, not base);
     #return formOuputData(taken, value, False);
 
