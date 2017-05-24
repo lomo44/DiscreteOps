@@ -25,10 +25,11 @@ def mark1(edges):
     newGraph.expand(edges)
     # very naive solution
 
-    used_index = {}
+    color_index = {}
+    color_range = 0
     usable_index = {}
     for index in range(len(newGraph.nodes)):
-        used_index[index] = False
+        color_index[index] = False
         usable_index[index] = True
 
     nodeQueue = []
@@ -40,19 +41,20 @@ def mark1(edges):
         # banned color
         for color in item.BannedColor:
             usable_index[color] = False
-        print(item.BannedColor)
         # looking for a possible color
         usable_color = -1
         for color in usable_index:
             if usable_index[color]:
+                if color > color_range:
+                    color_range = color
                 usable_color = color
                 break
         # unbaneed color
         for color in item.BannedColor:
             usable_index[color] = True
         # mark used color
-        if used_index[usable_color] is False:
-            used_index[usable_color] = True
+        if color_index[usable_color] is False:
+            color_index[usable_color] = True
         # assign color
         item.color = usable_color
         # print("Node Index: {0}, color: {1}".format(node.index,usable_color))
@@ -63,13 +65,15 @@ def mark1(edges):
                     item.neighborsNode[node_index].BannedColor.append(usable_color)
 
     output_data = str(len(newGraph.nodes)) + ' ' + str(0) + '\n'
-    max_value = 0
+    max_value = -1;
+    min_value = newGraph.getMaxDegree()
     for item in sorted(newGraph.nodes.keys()):
         if newGraph.nodes[item].color > max_value:
             max_value = newGraph.nodes[item].color
-        output_data += str(newGraph.nodes[item].color)+" "
-    print("Color Count: ", max_value)
-    return output_data
+    max_value+=1
+    print("Color Used: ", max_value)
+    return output_data+newGraph.testColorable(6)
+
 
 def solve_it(input_data):
 
