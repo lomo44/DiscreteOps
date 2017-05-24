@@ -72,7 +72,10 @@ def mark1(edges):
             max_value = newGraph.nodes[item].color
     max_value+=1
     print("Color Used: ", max_value)
-    return output_data+newGraph.testColorable(6)
+    temp_output = newGraph.testColorable(max_value)
+    if len(temp_output) != 0:
+        output_data += temp_output
+    return output_data
 
 
 def solve_it(input_data):
