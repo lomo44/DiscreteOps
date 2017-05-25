@@ -65,6 +65,13 @@ class Graph:
                     if int(item) > currentMax:
                         currentMax = int(item)
             return currentMax+1
+        def get_contrain_ctx(constrain_dict):
+            return_str = ""
+            for each_constrain in constrain_dict:
+                return_str += str(each_constrain) + "=" + str(len(constrain_dict[each_constrain]))
+            return return_str
+        def get_result_ctx(result_list):
+            return " ".join(map(str, result_list))
         def get_correct_output(result_str, node_list):
             output = [0] * len(node_list)
             counter = 0
@@ -75,62 +82,88 @@ class Graph:
             for item in output:
                 output_str += str(item) + " "
             return output_str
-        def check_feasible_2(s_index, color, result_list):
+        def check_feasible_using_result(s_index, color, result_list):
             for item in sorted_nodes[s_index].neighborsNode:
                 s_n_index = mapping_dict[item]
                 used_color = int(result_list[s_n_index])
                 if used_color == color:
                     return False
             return True
-        def detokenize_result(result_str):
-            value_list = []
-            for item in result_str.split():
-                if item != "":
-                    value_list.append(int(item))
-            return value_list
-        def check_is_dead_2(s_index, result_list, target):
-            return_str = ""
+        def build_constrain_dict(s_index, result_list, target):
             constrain_dict = {}
-            for index in range(s_index, len(sorted_nodes)):
-                banned_color = []
-                for n_node in sorted_nodes[index].neighborsNode:
-                    s_n_index = mapping_dict[n_node]
-                    used_color = int(result_list[s_n_index])
-                    if used_color not in banned_color and used_color >= 0:
-                        banned_color.append(used_color)
-                if len(banned_color) >= target:
-                    return True,None
-                else:
-                    constrain_dict[index] = banned_color
-            thingsChanged = True
-            while thingsChanged:
-                thingsChanged = False
-                for each_constrain in constrain_dict:
-                    if result_list[each_constrain] == -1:
-                        if target - len(constrain_dict[each_constrain]) == 1:
-                            for possible_color in range(target):
-                                if possible_color not in constrain_dict[each_constrain]:
-                                    result_list[each_constrain] = possible_color
-                                    thingsChanged = True
-                                    for n_node in sorted_nodes[each_constrain].neighborsNode:
-                                        s_n_index = mapping_dict[n_node]
-                                        if s_n_index in constrain_dict and possible_color not in constrain_dict[s_n_index]:
-                                            constrain_dict[s_n_index].append(possible_color)
-                                            if target == len(constrain_dict[s_n_index]) and result_list[s_n_index] == -1:
-                                                return True,None
-                        if target == len(constrain_dict[each_constrain]):
-                            return True,None
+            for index in range(len(result_list)):
+                if result_list[index] != -1:
+                    for n_node in sorted_nodes[index].neighborsNode:
+                        s_n_index = mapping_dict[n_node]
+                        used_color = int(result_list[index])
+                        if s_n_index > s_index and used_color != -1:
+                            if s_n_index not in constrain_dict:
+                                constrain_dict[s_n_index] = []
+                            if used_color not in constrain_dict[s_n_index]:
+                                constrain_dict[s_n_index].append(used_color)
+                                if len(constrain_dict[s_n_index]) >= target:
+                                    return True, None
+            return False,constrain_dict
+        def saturate_result(constrain_dict,result_list, target):
+            expandable_nodes = []
             for each_constrain in constrain_dict:
-                if len(constrain_dict[each_constrain]) >= target:
-                    return True,None
+                if target - len(constrain_dict[each_constrain]) == 1 and result_list[each_constrain] == -1:
+                    heapq.heappush(expandable_nodes, each_constrain)
+            while len(expandable_nodes) != 0:
+                expandable_node = heapq.heappop(expandable_nodes)
+                for possible_color in range(target):
+                    if possible_color not in constrain_dict[expandable_node]:
+                        result_list[expandable_node] = possible_color
+                        break
+                for n_node in sorted_nodes[expandable_node].neighborsNode:
+                    s_n_index = mapping_dict[n_node]
+                    if s_n_index not in constrain_dict:
+                        constrain_dict[s_n_index] = []
+                    if possible_color not in constrain_dict[s_n_index]:
+                        constrain_dict[s_n_index].append(possible_color)
+                    if result_list[s_n_index] == -1:
+                        if target == len(constrain_dict[s_n_index]):
+                            return True
+                        if target - len(constrain_dict[s_n_index]) == 1:
+                            heapq.heappush(expandable_nodes, s_n_index)
+            return False
+
+        def check_is_dead_2(s_index, result_list, target):
+            dead, constrain_dict = build_constrain_dict(s_index, result_list, target)
+            if dead:
+                return True, None
+            if saturate_result(constrain_dict,result_list, target):
+                return True, None
+            return False,get_contrain_ctx(constrain_dict)
+
+        def get_constrain_dict(s_index, result_list, target):
+            result_ctx = get_contrain_ctx(result_list)
+            if result_ctx not in global_constrain_dict:
+                dead, constrain = build_constrain_dict(s_index, result_list, target)
+                if dead:
+                    return None
                 else:
-                    return_str += str(each_constrain) + "=" + str(len(constrain_dict[each_constrain]))
-            return False,return_str
+                    global_constrain_dict[result_ctx] = constrain
+            return global_constrain_dict[result_ctx]
 
+        def update_constrain_dict(s_index, color, constrain_dict, target):
+            for constrain in sorted(constrain_dict):
+                if constrain < s_index:
+                    del constrain_dict[constrain]
+                else:
+                    break
+            for item in sorted_nodes[s_index].neightborsNode:
+                s_n_index = mapping_dict[item]
+                if s_n_index in constrain_dict:
+                    constrain_dict[s_n_index].append(color)
+                    if len(constrain_dict[s_n_index]) >= target:
+                        return False
+            return True
 
+        global_constrain_dict = {}
         temp_solution = []
         start_time = time.time()
-        threshold = 10
+        threshold = 300
         max_depth = -1
         target_color = numOfColor
         max_color = sys.maxsize
@@ -150,7 +183,10 @@ class Graph:
         mapping_dict = {}
         for node_index in range(len(sorted_nodes)):
             mapping_dict[sorted_nodes[node_index].index] = node_index
-        while len(nodeQueue) != 0 and (time.time() - start_time) <= threshold:
+        while len(nodeQueue) != 0:
+            if time.time() - start_time > threshold:
+                print("Time out")
+                break
             currentNode = heapq.heappop(nodeQueue)
             if(currentNode.depth > max_depth):
                 max_depth = currentNode.depth
@@ -158,24 +194,31 @@ class Graph:
             current_used_node = get_color_used(currentNode.tempResult)
             if current_used_node <= target_color:
                 if -1 in currentNode.tempResult:
-                    for color in range(target_color):
-                        if check_feasible_2(currentNode.depth, color, currentNode.tempResult):
-                            currentNode.tempResult[currentNode.depth] = color
-                            deadend,retstr = check_is_dead_2(currentNode.depth+1,currentNode.tempResult,target_color)
-                            if not deadend:
-                                if currentNode.depth not in global_context_dict:
-                                    global_context_dict[currentNode.depth] = []
-                                if retstr not in global_context_dict[currentNode.depth] and currentNode.depth < len(self.nodes):
-                                    # branch a new tree
-                                    global_context_dict[currentNode.depth].append(retstr)
-                                    newNode = NodeT()
-                                    for result_index in range(len(currentNode.tempResult)):
-                                        if currentNode.tempResult[result_index] == -1:
-                                            newNode.depth = result_index
-                                    newNode.depth = currentNode.depth+1
-                                    newNode.tempResult = copy.deepcopy(currentNode.tempResult)
-                                    heapq.heappush(nodeQueue,newNode)
-
+                    if currentNode.tempResult[currentNode.depth] != -1:
+                        for result_index in range(len(currentNode.tempResult)):
+                            if currentNode.tempResult[result_index] == -1:
+                                currentNode.depth = result_index
+                                break
+                        heapq.heappush(nodeQueue, currentNode)
+                    else:
+                        for color in range(target_color):
+                            if check_feasible_using_result(currentNode.depth, color, currentNode.tempResult):
+                                currentNode.tempResult[currentNode.depth] = color
+                                deadend,retstr = check_is_dead_2(currentNode.depth+1,currentNode.tempResult,target_color)
+                                if not deadend:
+                                    if currentNode.depth not in global_context_dict:
+                                        global_context_dict[currentNode.depth] = []
+                                    if retstr not in global_context_dict[currentNode.depth] and currentNode.depth < len(self.nodes):
+                                        # branch a new tree
+                                        global_context_dict[currentNode.depth].append(retstr)
+                                        newNode = NodeT()
+                                        for result_index in range(len(currentNode.tempResult)):
+                                            if currentNode.tempResult[result_index] == -1:
+                                                newNode.depth = result_index
+                                                break
+                                        newNode.depth = currentNode.depth+1
+                                        newNode.tempResult = copy.deepcopy(currentNode.tempResult)
+                                        heapq.heappush(nodeQueue,newNode)
                 else:
                     currentMax = get_color_used(currentNode.tempResult)
                     if currentMax <= target_color and currentMax < max_color:

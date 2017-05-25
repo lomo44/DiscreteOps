@@ -66,8 +66,9 @@ def mark1(edges):
 
     output_data = str(len(newGraph.nodes)) + ' ' + str(0) + '\n'
     max_value = -1;
-    min_value = newGraph.getMaxDegree()
+    current_result = ""
     for item in sorted(newGraph.nodes.keys()):
+        current_result += str(newGraph.nodes[item].color) + " "
         if newGraph.nodes[item].color > max_value:
             max_value = newGraph.nodes[item].color
     max_value+=1
@@ -75,6 +76,8 @@ def mark1(edges):
     temp_output = newGraph.testColorable(max_value)
     if len(temp_output) != 0:
         output_data += temp_output
+    else:
+        output_data += current_result
     return output_data
 
 
