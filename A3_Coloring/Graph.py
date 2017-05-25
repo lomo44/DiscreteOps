@@ -136,29 +136,6 @@ class Graph:
                 return True, None
             return False,get_contrain_ctx(constrain_dict)
 
-        def get_constrain_dict(s_index, result_list, target):
-            result_ctx = get_contrain_ctx(result_list)
-            if result_ctx not in global_constrain_dict:
-                dead, constrain = build_constrain_dict(s_index, result_list, target)
-                if dead:
-                    return None
-                else:
-                    global_constrain_dict[result_ctx] = constrain
-            return global_constrain_dict[result_ctx]
-
-        def update_constrain_dict(s_index, color, constrain_dict, target):
-            for constrain in sorted(constrain_dict):
-                if constrain < s_index:
-                    del constrain_dict[constrain]
-                else:
-                    break
-            for item in sorted_nodes[s_index].neightborsNode:
-                s_n_index = mapping_dict[item]
-                if s_n_index in constrain_dict:
-                    constrain_dict[s_n_index].append(color)
-                    if len(constrain_dict[s_n_index]) >= target:
-                        return False
-            return True
 
         global_constrain_dict = {}
         temp_solution = []
@@ -212,11 +189,10 @@ class Graph:
                                         # branch a new tree
                                         global_context_dict[currentNode.depth].append(retstr)
                                         newNode = NodeT()
-                                        for result_index in range(len(currentNode.tempResult)):
-                                            if currentNode.tempResult[result_index] == -1:
-                                                newNode.depth = result_index
-                                                break
                                         newNode.depth = currentNode.depth+1
+                                        while newNode.depth < len(currentNode.tempResult) and currentNode.tempResult[newNode.depth] != -1:
+                                            newNode.depth+=1
+
                                         newNode.tempResult = copy.deepcopy(currentNode.tempResult)
                                         heapq.heappush(nodeQueue,newNode)
                 else:
