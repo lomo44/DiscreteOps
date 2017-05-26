@@ -2,6 +2,7 @@ import heapq
 import sys
 import copy
 import time
+from functools import reduce
 class Node:
     def __init__(self):
         self.index = -1
@@ -61,9 +62,8 @@ class Graph:
         def get_color_used(result_list):
             currentMax = -1
             for item in result_list:
-                if item != '':
-                    if int(item) > currentMax:
-                        currentMax = int(item)
+                if item > currentMax:
+                    currentMax = item
             return currentMax+1
         def get_contrain_ctx(constrain_dict):
             return_str = ""
@@ -85,25 +85,52 @@ class Graph:
         def check_feasible_using_result(s_index, color, result_list):
             for item in sorted_nodes[s_index].neighborsNode:
                 s_n_index = mapping_dict[item]
-                used_color = int(result_list[s_n_index])
+                used_color = result_list[s_n_index]
                 if used_color == color:
                     return False
             return True
         def build_constrain_dict(s_index, result_list, target):
             constrain_dict = {}
-            for index in range(len(result_list)):
-                if result_list[index] != -1:
-                    for n_node in sorted_nodes[index].neighborsNode:
-                        s_n_index = mapping_dict[n_node]
-                        used_color = int(result_list[index])
-                        if s_n_index > s_index and used_color != -1:
-                            if s_n_index not in constrain_dict:
-                                constrain_dict[s_n_index] = []
-                            if used_color not in constrain_dict[s_n_index]:
-                                constrain_dict[s_n_index].append(used_color)
-                                if len(constrain_dict[s_n_index]) >= target:
-                                    return True, None
+            for index in range(s_index, len(result_list)):
+                for n_node in sorted_nodes[index].neighborsNode:
+                    s_n_index = mapping_dict[n_node]
+                    used_color = result_list[s_n_index]
+                    if used_color != -1:
+                        if index not in constrain_dict:
+                            constrain_dict[index] = set()
+                        constrain_dict[index].add(used_color)
+                        if len(constrain_dict[index]) >= target:
+                            return True, None
+
+            # for index in range(len(result_list)):
+            #     if result_list[index] != -1:
+            #         for n_node in sorted_nodes[index].neighborsNode:
+            #             s_n_index = mapping_dict[n_node]
+            #             used_color = int(result_list[index])
+            #             if s_n_index > s_index and used_color != -1:
+            #                 if s_n_index not in constrain_dict:
+            #                     constrain_dict[s_n_index] = []
+            #                 if used_color not in constrain_dict[s_n_index]:
+            #                     constrain_dict[s_n_index].append(used_color)
+            #                     if len(constrain_dict[s_n_index]) >= target:
+            #                         return True, None
             return False,constrain_dict
+
+        def cross_eliminate(constrain_dict, result_list):
+            for item in range(len(result_list)):
+                if result_list[item] == -1 :
+                    neighbors_banneds = []
+                    for n_node in sorted_nodes[item].neighborsNode:
+                        s_n_index = mapping_dict[n_node]
+                        if s_n_index in constrain_dict:
+                            neighbors_banneds.append(constrain_dict[s_n_index])
+                    if len(neighbors_banneds) == len(sorted_nodes[item].neighborsNode):
+                        intersect= reduce((lambda x,y: x.intersection(y)),neighbors_banneds)
+                        if len(intersect) != 0:
+                            print(intersect)
+
+
+
         def saturate_result(constrain_dict,result_list, target):
             expandable_nodes = []
             for each_constrain in constrain_dict:
@@ -118,9 +145,9 @@ class Graph:
                 for n_node in sorted_nodes[expandable_node].neighborsNode:
                     s_n_index = mapping_dict[n_node]
                     if s_n_index not in constrain_dict:
-                        constrain_dict[s_n_index] = []
-                    if possible_color not in constrain_dict[s_n_index]:
-                        constrain_dict[s_n_index].append(possible_color)
+                        constrain_dict[s_n_index] = set()
+                    #if possible_color not in constrain_dict[s_n_index]:
+                    constrain_dict[s_n_index].add(possible_color)
                     if result_list[s_n_index] == -1:
                         if target == len(constrain_dict[s_n_index]):
                             return True
@@ -128,19 +155,18 @@ class Graph:
                             heapq.heappush(expandable_nodes, s_n_index)
             return False
 
-        def check_is_dead_2(s_index, result_list, target):
+        def explore(s_index, result_list, target):
             dead, constrain_dict = build_constrain_dict(s_index, result_list, target)
             if dead:
                 return True, None
             if saturate_result(constrain_dict,result_list, target):
                 return True, None
+            #cross_eliminate(constrain_dict,result_list)
             return False,get_contrain_ctx(constrain_dict)
 
-
-        global_constrain_dict = {}
         temp_solution = []
         start_time = time.time()
-        threshold = 300
+        threshold = 600
         max_depth = -1
         target_color = numOfColor
         max_color = sys.maxsize
@@ -181,7 +207,7 @@ class Graph:
                         for color in range(target_color):
                             if check_feasible_using_result(currentNode.depth, color, currentNode.tempResult):
                                 currentNode.tempResult[currentNode.depth] = color
-                                deadend,retstr = check_is_dead_2(currentNode.depth+1,currentNode.tempResult,target_color)
+                                deadend,retstr = explore(currentNode.depth+1,currentNode.tempResult,target_color)
                                 if not deadend:
                                     if currentNode.depth not in global_context_dict:
                                         global_context_dict[currentNode.depth] = []
@@ -193,7 +219,8 @@ class Graph:
                                         while newNode.depth < len(currentNode.tempResult) and currentNode.tempResult[newNode.depth] != -1:
                                             newNode.depth+=1
 
-                                        newNode.tempResult = copy.deepcopy(currentNode.tempResult)
+                                        #newNode.tempResult = copy.deepcopy(currentNode.tempResult)
+                                        newNode.tempResult = currentNode.tempResult[:]
                                         heapq.heappush(nodeQueue,newNode)
                 else:
                     currentMax = get_color_used(currentNode.tempResult)
