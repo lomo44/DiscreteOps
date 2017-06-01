@@ -54,3 +54,20 @@ def get_total_distance(solution, distance_dict):
         total_distance += get_distance_from_dict(solution[index], solution[index+1], distance_dict)
     total_distance += get_distance_from_dict(solution[len(solution)-1],solution[0],distance_dict)
     return total_distance
+
+def generate_5_cache():
+    with open('./data/tsp_5_1', 'r') as input_data_file:
+        input_data = input_data_file.read()
+        point_list = parse_data(input_data)
+        point_dict = convert_point_list_to_dict(point_list)
+        save_distance_dict(generate_distance_dict(point_dict), '5.cache')
+
+def generate_51_cache():
+    with open('./data/tsp_51_1', 'r') as input_data_file:
+        input_data = input_data_file.read()
+        point_list = parse_data(input_data)
+        point_dict = convert_point_list_to_dict(point_list)
+        save_distance_dict(generate_distance_dict(point_dict), '51.cache')
+
+if __name__ == "__main__":
+    generate_51_cache()

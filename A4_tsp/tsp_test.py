@@ -59,6 +59,9 @@ class tests_tsp_solver(unittest.TestCase):
     def test_51Point_Grade7(self):
         result, solution = tsp_master(self.point_dict, self.distance_dict)
         self.assertLess(result, 482)
+    def test_51Point_Grade10(self):
+        result, solution = tsp_master(self.point_dict, self.distance_dict)
+        self.assertLess(result, 430)
 
 
 class tests_tsp_local_search(unittest.TestCase):
@@ -77,6 +80,7 @@ class tests_tsp_local_search(unittest.TestCase):
         get_2opt(0,3,solution)
         self.assertListEqual(solution,[4,3,2,1,5])
 
+
     def test_2opt_reverse(self):
         solution = [1, 2, 3, 4, 5]
         get_2opt(3, 1, solution)
@@ -84,6 +88,39 @@ class tests_tsp_local_search(unittest.TestCase):
         solution = [1,2,3,4,5]
         get_2opt(3,0,solution)
         self.assertListEqual(solution, [4,2,3,1,5])
+        solution = [1,2,3,4,5]
+        get_2opt(2,0,solution)
+        self.assertListEqual(solution, [3,2,1,5,4])
+        solution = [1,2,3,4,5]
+        get_2opt(4,2,solution)
+        self.assertListEqual(solution, [2,1,5,4,3])
+
+    def test_2opt_estimate_reverse_3size(self):
+        solution = [0, 1, 2, 3, 4]
+        test_difference = get_2opt_delta(3, 1, solution, self.distance_dict)
+        previous_distance = get_total_distance(solution, self.distance_dict)
+        get_2opt(3, 1, solution)
+        current_distance = get_total_distance(solution, self.distance_dict)
+        true_difference = previous_distance - current_distance
+        self.assertEqual(true_difference, test_difference)
+
+    def test_2opt_estimate_reverse_2size(self):
+        solution = [0, 1, 2, 3, 4]
+        test_difference = get_2opt_delta(2, 1, solution, self.distance_dict)
+        previous_distance = get_total_distance(solution, self.distance_dict)
+        get_2opt(2, 1, solution)
+        current_distance = get_total_distance(solution, self.distance_dict)
+        true_difference = previous_distance - current_distance
+        self.assertEqual(true_difference, test_difference)
+
+    def test_2opt_estimate_reverse_4size(self):
+        solution = [0, 1, 2, 3, 4]
+        test_difference = get_2opt_delta(3, 0, solution, self.distance_dict)
+        previous_distance = get_total_distance(solution, self.distance_dict)
+        get_2opt(3, 0, solution)
+        current_distance = get_total_distance(solution, self.distance_dict)
+        true_difference = previous_distance - current_distance
+        self.assertEqual(true_difference, test_difference)
 
     def test_2opt_estimate_3size(self):
         solution = [0,1,2,3,4]
