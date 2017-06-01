@@ -5,6 +5,8 @@ import math
 from collections import namedtuple
 import networkx as nx
 import matplotlib.pyplot as plt
+from A4_tsp.tsp_util import *
+from A4_tsp.tsp_solver import *
 import time
 
 Point = namedtuple("Point", ['x', 'y'])
@@ -12,22 +14,12 @@ Point = namedtuple("Point", ['x', 'y'])
 def length(point1, point2):
     return math.sqrt((point1.x - point2.x)**2 + (point1.y - point2.y)**2)
 
-def parse_data(input_data):
-    lines = input_data.split('\n')
 
-    nodeCount = int(lines[0])
 
-    points = []
-    for i in range(1, nodeCount + 1):
-        line = lines[i]
-        parts = line.split()
-        points.append(Point(float(parts[0]), float(parts[1])))
-    return points
-
-def plot_result(solution, pointlist):
+def plot_result(solution, point_dict):
     G = nx.Graph()
-    for item in pointlist:
-        G.add_node(item, pos=pointlist[item])
+    for item in point_dict:
+        G.add_node(item, pos=point_dict[item])
     for index in range(0, len(solution)-1):
         G.add_edge(solution[index],solution[index+1])
     G.add_edge(solution[0], solution[len(solution)-1])
@@ -58,19 +50,19 @@ def solve_it(input_data):
     point_dict = {}
     for index in range(len(points)):
         point_dict[index] = points[index]
-    solution = range(0, len(points))
-
-    # calculate the length of the tour
-    obj = length(points[solution[-1]], points[solution[0]])
-    for index in range(0, len(points)-1):
-        obj += length(points[solution[index]], points[solution[index+1]])
 
 
-    plot_result(solution, point_dict)
+    distance_dict = load_distance_dict(str(len(point_dict))+".cache")
+    greedy_result, greedy_solution = tsp_master(point_dict,distance_dict)
+
+    #distance_dict = generate_distance_dict(point_dict)
+    #save_distance_dict(distance_dict, str(len(point_dict))+".cache")
+    #plot_result(greedy_solution, point_dict)
 
     # prepare the solution in the specified output format
-    output_data = '%.2f' % obj + ' ' + str(0) + '\n'
-    output_data += ' '.join(map(str, solution))
+    output_data = '%.2f' % greedy_result + ' ' + str(0) + '\n'
+    output_data += ' '.join(map(str, greedy_solution))
+    # plot_result(greedy_solution,point_dict)
     return output_data
 
 
