@@ -3,7 +3,7 @@ import sys
 import random
 
 def tsp_master(point_dict, distance_dict):
-    distance,result = tsp_greedy_ex(point_dict,distance_dict,30)
+    distance,result = tsp_greedy_ex(point_dict,distance_dict,int(len(point_dict)/4))
     return distance,result
 
 def tsp_greedy(point_dict, distance_dict,start_index):

@@ -47,3 +47,10 @@ def convert_point_list_to_dict(point_list):
     for index in range(len(point_list)):
         point_dict[index] = point_list[index]
     return point_dict
+
+def get_total_distance(solution, distance_dict):
+    total_distance = 0
+    for index in range(len(solution)-1):
+        total_distance += get_distance_from_dict(solution[index], solution[index+1], distance_dict)
+    total_distance += get_distance_from_dict(solution[len(solution)-1],solution[0],distance_dict)
+    return total_distance
