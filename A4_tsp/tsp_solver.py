@@ -44,6 +44,14 @@ def tsp_greedy_ex(point_dict, distance_dict, iteration):
 
 
 def tsp_sa(point_dict, distance_dict):
+    temperature_dict = {
+        51: 20,
+        100: 100,
+        200: 100,
+        574: 200,
+        1889: 300,
+        33810: 300
+    }
 
     def generate_initial_temperature(solution):
         return len(solution)
@@ -66,22 +74,55 @@ def tsp_sa(point_dict, distance_dict):
         else:
             return math.exp(delta/temperature)
 
-    max_search_iteration = 256000
-    current_result, current_solution = tsp_greedy_ex(point_dict,distance_dict,int(len(point_dict)/4))
-    temperature = 30
+    max_search_iteration = 1000000
+    current_result = 0
+    current_solution = []
+    if len(point_dict) < 2000:
+        current_result, current_solution = tsp_greedy_ex(point_dict,distance_dict,10)
+    else:
+        current_result, current_solution = tsp_greedy_ex(point_dict, distance_dict, 1)
+
     zerocount = 0
-    for index in range(0, max_search_iteration):
+    index = 0
+    idle = 0
+    max_idle = -1
+    current_best_result = sys.maxsize
+    current_best_solution = []
+    initial_temperature = temperature_dict[len(point_dict)]
+    temperature = initial_temperature
+    reheat_count = 10
+    while index < max_search_iteration:
         current_temperature = temperature * (1-index/max_search_iteration)
         lower,upper = generate_local_search(current_solution)
         delta = get_2opt_delta(lower,upper,current_solution,distance_dict)
         if delta == 0:
-            zerocount+=1
-        if acceptance(delta, current_temperature) >= random.random():
-            # accept new result
-            current_result -= delta
-            get_2opt(lower,upper,current_solution)
-            current_result_2 = get_total_distance(current_solution, distance_dict)
-
-            print("Current Result: {0}, Current Iteration: {1}".format(current_result, index))
-    print("Zero Count: {0}".format(zerocount))
-    return current_result, current_solution
+            continue
+        else:
+            if acceptance(delta, current_temperature) >= random.random():
+                current_result -= delta
+                get_2opt(lower,upper,current_solution)
+                if idle > max_idle:
+                    max_idle = idle
+                idle = 0
+            else:
+                idle += 1
+                #temperature += idle / max_search_iteration
+            index+=1
+            if index == max_search_iteration:
+                if reheat_count == 0:
+                    break
+                # reheat
+                print("[Reheat] Current Result: {0}, Current Iteration: {1}".format(current_result, index))
+                if current_result < current_best_result:
+                    current_best_result = current_result
+                    current_best_solution = current_solution[:]
+                temperature = initial_temperature
+                index = 0
+                reheat_count -= 1
+                idle = 0
+            #print("Current Result: {0}, Current Iteration: {1}".format(current_result, index))
+    if current_result < current_best_result:
+        current_best_result = current_result
+        current_best_solution = current_solution[:]
+    print("Zero Count: {0}. Max Idle: {1}".format(zerocount,idle))
+    return current_best_result, current_best_solution

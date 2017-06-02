@@ -3,8 +3,8 @@
 
 import math
 from collections import namedtuple
-import networkx as nx
-import matplotlib.pyplot as plt
+#import networkx as nx
+#import matplotlib.pyplot as plt
 from A4_tsp.tsp_util import *
 from A4_tsp.tsp_solver import *
 import time
