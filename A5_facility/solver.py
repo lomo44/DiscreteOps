@@ -1,10 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from collections import namedtuple
-from A5_facility.facility_caching import *
-from A5_facility.facility_util import *
-from A5_facility.facility_solver import *
+from facility_solver import facility_greedy,parse_input_from_string,generate_output_from_solution
+from facility_util import load_cache
 import math
 
 def length(point1, point2):
@@ -14,7 +12,8 @@ def solve_it(input_data):
 
     # parse the input
     facilities,customers = parse_input_from_string(input_data)
-    cost = facility_greedy(facilities,customers)
+    facilities_cache = load_cache(str(len(facilities))+"_"+str(len(customers))+".cache")
+    cost = facility_greedy(facilities,customers,facilities_cache)
     return generate_output_from_solution(cost,customers)
 
 

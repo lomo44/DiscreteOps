@@ -1,3 +1,6 @@
+from collections import namedtuple
+
+Point = namedtuple("Point", ['x', 'y'])
 
 class Facility:
     def __init__(self):
@@ -10,5 +13,5 @@ class Customer:
     def __init__(self):
         self.index = 0
         self.demand = 0
-        self.assigned_facility = 0
+        self.assigned_facility = -1
         self.location = None
