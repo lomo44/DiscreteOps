@@ -15,7 +15,7 @@ def solve_it(input_data):
     facilities_cache = load_cache(str(len(facilities))+"_"+str(len(customers))+".cache")
     #cost = facility_greedy(facilities,customers,facilities_cache)
     #return generate_output_from_solution(cost,customers)
-    return facility_SA(facilities,customers,facilities_cache)
+    return genereate_output_from_output_array(facility_SA(facilities,customers,facilities_cache))
 
 
 if __name__ == '__main__':

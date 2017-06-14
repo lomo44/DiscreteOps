@@ -27,24 +27,23 @@ def facility_reassign(facilities, customers, swap_count, facility_cache, opened_
     # reassign facility
     for index in used_customers_index:
         # get possible facility
-        possible_facility = []
-        for facility in facilities:
-            if facility.index != customer_facility_changes[index][0]:
+        possible_facility = set(range(0,len(facilities)))
+        select_index = None
+        while len(possible_facility) != 0:
+            current_index = random.randint(0, len(possible_facility) - 1)
+            if current_index in possible_facility and current_index != customer_facility_changes[index][0]:
                 addtional_capacity = 0
-                if facility.index in facility_capacity_changes:
-                    addtional_capacity = facility_capacity_changes[facility.index]
-                if facility.capacity + addtional_capacity >= customers[index].demand:
-                    possible_facility.append(facility.index)
-        switch_facility_index = 0
-        if len(possible_facility) > 0:
-            select_index = random.randint(0, len(possible_facility)-1)
-            switch_facility_index = possible_facility[select_index]
-        else:
-            switch_facility_index = customer_facility_changes[index][0]
-        customer_facility_changes[index][1] = switch_facility_index
-        if switch_facility_index not in facility_capacity_changes:
-            facility_capacity_changes[possible_facility[select_index]] = 0
-        facility_capacity_changes[switch_facility_index] -= customers[index].demand
+                if current_index in facility_capacity_changes:
+                    addtional_capacity = facility_capacity_changes[current_index]
+                if facilities[current_index].capacity + addtional_capacity >= customers[index].demand:
+                    select_index = current_index
+                    break
+                else:
+                    possible_facility.remove(current_index)
+        customer_facility_changes[index][1] = select_index
+        if select_index not in facility_capacity_changes:
+            facility_capacity_changes[select_index] = 0
+        facility_capacity_changes[select_index] -= customers[index].demand
 
     facility_capacity_changes = {k: v for k, v in facility_capacity_changes.items() if v != 0}
 

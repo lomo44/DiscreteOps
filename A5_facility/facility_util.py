@@ -94,6 +94,14 @@ def generate_output_from_solution(cost, customers):
     output_data += ' '.join(map(str, solution))
     return output_data
 
+def generate_output_array_from_solution(cost, customers):
+    return [cost] + list(map(lambda x:x.assigned_facility, customers))
+
+def genereate_output_from_output_array(output_array):
+    output_data = '%.2f' % output_array[0] + ' ' + str(0) + '\n'
+    output_data += ' '.join(map(str, output_array[1:]))
+    return output_data
+
 def save_cache(self, output_file_path):
     with open(output_file_path, 'wb') as f:
         cPickle.dump(self, f)
