@@ -20,6 +20,7 @@ def parse_input_from_string(input_data):
         new_facility.index = i-1
         new_facility.setup_cost = float(parts[0])
         new_facility.capacity = int(parts[1])
+        new_facility.max_capacity = int(parts[1])
         new_facility.location = Point(float(parts[2]), float(parts[3]))
         facilities.append(new_facility)
 
@@ -53,6 +54,24 @@ def get_nearest_joinable_facility(facilities, customer, distance_dict):
                 result_cost = current_cost
                 result_facility = facility
     return result_cost, result_facility
+
+def get_opened_facilities(_customers):
+    ret_set = set()
+    for customer in _customers:
+        ret_set.add(customer.assigned_facility)
+    return ret_set
+
+def get_cost_and_capacity(facilities, customers, facility_cache):
+    costs = 0.0
+    opened_facility_set = set()
+    for customer in customers:
+        if customer.assigned_facility not in opened_facility_set:
+            opened_facility_set.add(customer.assigned_facility)
+            costs+=facilities[customer.assigned_facility].setup_cost
+        facilities[customer.assigned_facility].capacity-=customer.demand
+        costs+=facility_cache.distance_cache[customer.index][customer.assigned_facility]
+    return costs
+
 
 def get_nearest_facility(customer, facilities, excluded_facilities_index, facility_cache):
     for facility_index in facility_cache.distance_order_cache[customer.index]:

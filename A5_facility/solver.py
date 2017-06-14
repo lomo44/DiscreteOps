@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from facility_solver import facility_greedy,parse_input_from_string,generate_output_from_solution
+from facility_solver import *
 from facility_util import load_cache
 import math
 
@@ -13,8 +13,9 @@ def solve_it(input_data):
     # parse the input
     facilities,customers = parse_input_from_string(input_data)
     facilities_cache = load_cache(str(len(facilities))+"_"+str(len(customers))+".cache")
-    cost = facility_greedy(facilities,customers,facilities_cache)
-    return generate_output_from_solution(cost,customers)
+    #cost = facility_greedy(facilities,customers,facilities_cache)
+    #return generate_output_from_solution(cost,customers)
+    return facility_SA(facilities,customers,facilities_cache)
 
 
 if __name__ == '__main__':

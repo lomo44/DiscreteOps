@@ -7,6 +7,7 @@ class Facility:
         self.index = 0
         self.setup_cost = 0
         self.capacity = 0
+        self.max_capacity = 0
         self.location = None
 
 class Customer:

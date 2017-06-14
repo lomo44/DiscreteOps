@@ -1,8 +1,9 @@
-
+from copy import deepcopy
 import unittest
 import os
-from facility_caching import *
+from facility_localsearch import *
 from facility_util import *
+from facility_solver import *
 class test_base(unittest.TestCase):
     def test_parsing_from_file(self):
         facilities,customers = parse_input_from_file("./data/fl_25_2")
@@ -53,14 +54,45 @@ class test_util(unittest.TestCase):
         self.caches = Facility_cache()
         self.caches.generate_all_cache(self.facilities, self.customers)
     def test_get_nearest_unopened_facility(self):
-        unopen = get_nearest_facility([], self.customers[0], self.caches.distance_order_cache, self.facilities)
+        unopen = get_nearest_facility(self.customers[0],self.facilities,[],self.caches)
         self.assertEqual(unopen,0)
-        unopen = get_nearest_facility([0], self.customers[0], self.caches.distance_order_cache, self.facilities)
+        unopen = get_nearest_facility(self.customers[0],self.facilities,[0],self.caches)
         self.assertEqual(unopen,1)
-        unopen = get_nearest_facility([1, 2], self.customers[0], self.caches.distance_order_cache, self.facilities)
+        unopen = get_nearest_facility(self.customers[0],self.facilities,[1,2],self.caches)
         self.assertEqual(unopen, 0)
-        unopen = get_nearest_facility([0, 1, 2], self.customers[0], self.caches.distance_order_cache, self.facilities)
+        unopen = get_nearest_facility(self.customers[0],self.facilities,[0,1,2],self.caches)
         self.assertEqual(unopen, None)
+    def test_get_cost_and_capacity(self):
+        cost = facility_greedy(deepcopy(self.facilities),self.customers,self.caches)
+        self.assertAlmostEqual(cost, get_cost_and_capacity(deepcopy(self.facilities),self.customers,self.caches),3)
+class test_localsearch(unittest.TestCase):
+    def setUp(self):
+        facilities, customers = parse_input_from_file("./data/fl_16_1")
+        self.facilities = facilities
+        self.customers = customers
+        self.greedy_facilities = deepcopy(facilities)
+        self.greedy_customer = deepcopy(customers)
+
+        self.caches = Facility_cache()
+        self.caches.generate_all_cache(self.facilities, self.customers)
+        self.greedyCost = facility_greedy(self.greedy_facilities,self.greedy_customer,self.caches)
+    def test_facility_reassign(self):
+        for x in range(0,10):
+            opened_facility_index = get_opened_facilities(self.greedy_customer)
+            delta_cost, facility_changes, customer_changes = facility_reassign(self.greedy_facilities,
+                                                                               self.greedy_customer, 1, self.caches,
+                                                                               opened_facility_index)
+            new_customers = deepcopy(self.greedy_customer)
+            new_facilities = deepcopy(self.facilities)
+            for customer in customer_changes:
+                new_customers[customer].assigned_facility = customer_changes[customer][1]
+            newcost = get_cost_and_capacity(new_facilities, new_customers, self.caches)
+            self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=1)
+            new_diff_dict = {}
+            for facility in new_facilities:
+                if facility.capacity - self.greedy_facilities[facility.index].capacity != 0:
+                    new_diff_dict[facility.index] = facility.capacity - self.greedy_facilities[facility.index].capacity
+            self.assertDictEqual(facility_changes, new_diff_dict)
 
 if __name__ == "__main__":
     unittest.main()
