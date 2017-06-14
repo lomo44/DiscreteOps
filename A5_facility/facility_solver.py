@@ -54,7 +54,8 @@ def facility_SA(facilities, customers, facility_cache):
     opened_facilities_index = get_opened_facilities(customers)
 
     initial_temperature_dict = {
-        "500_3000": 1200,
+        "200_800" : 1500,
+        "500_3000": 2000, # need to tune this
         "100_1000": 3500,
         "1000_1500": 1500,
         "2000_2000": 1200
