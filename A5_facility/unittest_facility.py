@@ -76,6 +76,7 @@ class test_localsearch(unittest.TestCase):
         self.caches = Facility_cache()
         self.caches.generate_all_cache(self.facilities, self.customers)
         self.greedyCost = facility_greedy(self.greedy_facilities,self.greedy_customer,self.caches)
+        build_facility_customer_list(self.greedy_facilities, self.greedy_customer)
     def test_facility_reassign(self):
         for x in range(0,10):
             opened_facility_index = get_opened_facilities(self.greedy_customer)
@@ -92,6 +93,29 @@ class test_localsearch(unittest.TestCase):
             for facility in new_facilities:
                 if facility.capacity - self.greedy_facilities[facility.index].capacity != 0:
                     new_diff_dict[facility.index] = facility.capacity - self.greedy_facilities[facility.index].capacity
+            self.assertDictEqual(facility_changes, new_diff_dict)
+
+    def test_facility_swap(self):
+        for x in range(0,1000):
+            opened_facility_index = get_opened_facilities(self.greedy_customer)
+            delta_cost, facility_changes, customer_changes = facility_swap(self.greedy_facilities,
+                                                                               self.greedy_customer, self.caches,
+                                                                               opened_facility_index)
+            new_customers = deepcopy(self.greedy_customer)
+            new_facilities = deepcopy(self.facilities)
+            for customer in customer_changes:
+                new_customers[customer].assigned_facility = customer_changes[customer][1]
+
+            newcost = get_cost_and_capacity(new_facilities, new_customers, self.caches)
+
+            self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=1)
+
+            new_diff_dict = {}
+            for facility in new_facilities:
+                if facility.capacity - self.greedy_facilities[facility.index].capacity != 0:
+                    new_diff_dict[facility.index] = facility.capacity - self.greedy_facilities[facility.index].capacity
+
+
             self.assertDictEqual(facility_changes, new_diff_dict)
 
 if __name__ == "__main__":

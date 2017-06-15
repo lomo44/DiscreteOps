@@ -2,7 +2,7 @@ from collections import namedtuple
 from A5_facility.facility_caching import *
 from facility_util import *
 from facility_localsearch import *
-
+from copy import deepcopy
 def facility_greedy(facilities, customers, facility_cache):
 
     openedFacility = set()
@@ -47,16 +47,17 @@ def facility_SA(facilities, customers, facility_cache):
             return 1
         else:
             return math.exp(-delta/temperature)
-
+    original_facilities = deepcopy(facilities)
     global_cost = facility_greedy(facilities, customers, facility_cache);
     current_cost = global_cost
     global_solution = generate_output_array_from_solution(global_cost,customers)
     opened_facilities_index = get_opened_facilities(customers)
+    build_facility_customer_list(facilities,customers)
 
     initial_temperature_dict = {
         "200_800" : 1500,
         "500_3000": 2000, # need to tune this
-        "100_1000": 4000,
+        "100_1000": 1500,
         "1000_1500": 1500,
         "2000_2000": 1200
     }
@@ -64,7 +65,7 @@ def facility_SA(facilities, customers, facility_cache):
         "25_50": 10,
         "50_200": 24000000,
         "100_100": 10,
-        "100_1000": 96000000,
+        "100_1000": 2000000,
         "200_800": 24000000,
         "500_3000": 24000000,
         "1000_1500": 24000000,
@@ -95,8 +96,14 @@ def facility_SA(facilities, customers, facility_cache):
     while iteration < max_iteration:
         current_temperature = temerature(iteration,max_iteration)
         #current_temperature = quench_temerature(iteration,max_iteration, quenching_cycle_count)
-        delta_cost, facility_changes,customers_changes = \
-            facility_reassign(facilities,customers,swap_count,facility_cache,opened_facilities_index)
+        # delta_cost, facility_changes,customers_changes = \
+        #     facility_reassign(facilities,customers,swap_count,facility_cache,opened_facilities_index)
+        if iteration %2 == 1:
+            delta_cost, facility_changes,customers_changes = \
+                facility_swap(facilities,customers,facility_cache,opened_facilities_index)
+        else:
+            delta_cost, facility_changes, customers_changes = \
+                facility_reassign(facilities, customers,swap_count,facility_cache, opened_facilities_index)
         if acceptance(delta_cost, current_temperature) >= random.random():
             if average_delta == 0:
                 average_delta = abs(delta_cost)
@@ -113,9 +120,14 @@ def facility_SA(facilities, customers, facility_cache):
                     opened_facilities_index.remove(facility_index)
             for customers_index in customers_changes:
                 customers[customers_index].assigned_facility = customers_changes[customers_index][1]
+                if customers_index in facilities[customers_changes[customers_index][0]].customers:
+                    facilities[customers_changes[customers_index][0]].customers.remove(customers_index)
+                facilities[customers_changes[customers_index][1]].customers.append(customers_index)
             if current_cost + delta_cost < global_cost:
                 global_solution = generate_output_array_from_solution(current_cost+delta_cost,customers)
                 global_cost = current_cost+delta_cost
+                cost = get_cost_and_capacity(deepcopy(original_facilities), customers, facility_cache)
+                assert abs(global_cost - cost) <= 10
                 print("Cost: {0}, Iteration: {1}, Average Delta: {2}".format(global_cost, iteration/max_iteration, average_delta))
             current_cost += delta_cost
         iteration+=1

@@ -9,6 +9,7 @@ class Facility:
         self.capacity = 0
         self.max_capacity = 0
         self.location = None
+        self.customers = []
 
 class Customer:
     def __init__(self):

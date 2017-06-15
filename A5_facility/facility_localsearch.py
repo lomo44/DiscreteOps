@@ -58,3 +58,78 @@ def facility_reassign(facilities, customers, swap_count, facility_cache, opened_
                       facility_cache.distance_cache[customer_index][customer_facility_changes[customer_index][0]]
     return delta_cost, facility_capacity_changes, customer_facility_changes
 
+def facility_swap(facilities, customers, facility_cache, opened_facility_index):
+
+    def check_swappable(customer_A, customer_B):
+        if facilities[customer_A.assigned_facility].capacity + customer_A.demand >= customer_B.demand and \
+                                facilities[customer_B.assigned_facility].capacity + customer_B.demand >= customer_A.demand:
+            return True
+        return False
+
+    def get_possible_facilities(customer_A, _facilities):
+        return list(map(lambda x: x.index, filter(lambda y: y.max_capacity >= customer_A.demand and y.index != customer_A.assigned_facility, _facilities)))
+
+    G_CA = None
+    G_FB = None
+    G_CB = None
+    possible_customer_A = set(range(len(customers)))
+
+    while len(possible_customer_A) > 0:
+        pick_CA = random.sample(possible_customer_A,1)[0]
+        possible_facility = get_possible_facilities(customers[pick_CA], facilities)
+        while len(possible_facility) > 0:
+            pick_FA = random.sample(possible_facility,1)[0]
+            if facilities[pick_FA].capacity >= customers[pick_CA].demand:
+                if len(facilities[pick_FA].customers) == 0:
+                    G_FB = pick_FA
+                    G_CB = -1
+                    break
+                else:
+                    possible_CB = set(range(len(facilities[pick_FA].customers)))
+                    while len(possible_CB) >0:
+                        pick_FB = random.sample(possible_CB,1)[0]
+                        if check_swappable(customers[pick_FA],customers[facilities[pick_FA].customers[pick_FB]]):
+                            G_FB = pick_FA
+                            G_CB = customers[facilities[pick_FA].customers[pick_FB]].index
+                            break
+                        else:
+                            possible_CB.remove(pick_FB)
+            if G_FB is not None and G_CB is not None:
+                break
+            else:
+                possible_facility.remove(pick_FA)
+
+        if G_FB is not None:
+            G_CA = pick_CA
+            break
+        else:
+            possible_customer_A.remove(pick_CA)
+
+    # calculate costs
+    delta_cost = 0
+    facility_capacity_changes = {}
+    customer_facility_changes = {}
+
+
+    if G_CA is not None and G_FB is not None:
+        customer_facility_changes[G_CA] = (customers[G_CA].assigned_facility, G_FB)
+        facility_capacity_changes[customers[G_CA].assigned_facility] = customers[G_CA].demand
+        facility_capacity_changes[G_FB] = -customers[G_CA].demand
+        delta_cost += (facility_cache.distance_cache[G_CA][G_FB]-facility_cache.distance_cache[G_CA][customers[G_CA].assigned_facility])
+        if G_CB == -1:
+            if customers[G_CA].demand + facilities[customers[G_CA].assigned_facility].capacity >= facilities[
+                customers[G_CA].assigned_facility].max_capacity:
+                delta_cost -= facilities[customers[G_CA].assigned_facility].setup_cost
+            delta_cost += facilities[G_FB].setup_cost
+        else:
+            customer_facility_changes[G_CB] = (G_FB, customers[G_CA].assigned_facility)
+            facility_capacity_changes[customers[G_CA].assigned_facility] += -customers[G_CB].demand
+            facility_capacity_changes[G_FB] += customers[G_CB].demand
+            # if customers[G_CB].demand + facilities[customers[G_CB].assigned_facility].capacity >= facilities[customers[G_CB].assigned_facility].max_capacity:
+            #     delta_cost -= facilities[customers[G_CB].assigned_facility].setup_cost
+            delta_cost += (facility_cache.distance_cache[G_CB][
+                customers[G_CA].assigned_facility]-facility_cache.distance_cache[G_CB][G_FB])
+
+    facility_capacity_changes = {k: v for k, v in facility_capacity_changes.items() if v != 0}
+    return delta_cost,facility_capacity_changes,customer_facility_changes
+

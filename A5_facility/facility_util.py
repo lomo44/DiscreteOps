@@ -4,6 +4,7 @@ from facility_caching import Facility_cache
 import _pickle as cPickle
 import sys
 import math
+import random
 def get_distance_from_dict(facility, customer, distance_dict):
     return distance_dict[customer.index][facility.index]
 
@@ -114,6 +115,9 @@ def load_cache(input_file_path):
     with open(input_file_path, 'rb') as f:
         return cPickle.load(f)
 
+def build_facility_customer_list(facilities, customers):
+    for customer in customers:
+        facilities[customer.assigned_facility].customers.append(customer.index)
 
 def generate_caches():
     cachelist = [
@@ -136,4 +140,5 @@ def generate_caches():
         save_cache(newCaches, str(len(facilities)) + "_" + str(len(customer)) + ".cache")
 
 if __name__ == "__main__":
-    generate_caches()
+    #generate_caches()
+    print(random.sample({0},1)[0])
