@@ -56,15 +56,27 @@ def facility_SA(facilities, customers, facility_cache):
     initial_temperature_dict = {
         "200_800" : 1500,
         "500_3000": 2000, # need to tune this
-        "100_1000": 3500,
+        "100_1000": 4000,
         "1000_1500": 1500,
         "2000_2000": 1200
+    }
+    initial_iteration_dict = {
+        "25_50": 10,
+        "50_200": 24000000,
+        "100_100": 10,
+        "100_1000": 96000000,
+        "200_800": 24000000,
+        "500_3000": 24000000,
+        "1000_1500": 24000000,
+        "2000_2000": 24000000
     }
     temeperature_key = str(len(facilities))+"_"+str(len(customers))
     max_iteration = 24000000
     initial_temperature = 3500
     if temeperature_key in initial_temperature_dict:
         initial_temperature = initial_temperature_dict[temeperature_key]
+    if temeperature_key in initial_iteration_dict:
+        max_iteration = initial_iteration_dict[temeperature_key]
     swap_count = 1
     quenching_cycle_count = 10
     average_delta = 0
@@ -79,6 +91,7 @@ def facility_SA(facilities, customers, facility_cache):
         return initial_temperature * (math.sin(2*math.pi/quenching_period*iteration + 0.5*math.pi)*0.4 + 0.6)
 
     iteration = 0
+    #print("Initial Temperature {0}".format(initial_temperature))
     while iteration < max_iteration:
         current_temperature = temerature(iteration,max_iteration)
         #current_temperature = quench_temerature(iteration,max_iteration, quenching_cycle_count)
