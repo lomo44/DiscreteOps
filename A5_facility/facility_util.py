@@ -119,6 +119,17 @@ def build_facility_customer_list(facilities, customers):
     for customer in customers:
         facilities[customer.assigned_facility].customers.append(customer.index)
 
+def check_solution_valid(facilities, customers):
+    capacity_dict = {}
+    for customer in customers:
+        if customer.assigned_facility not in capacity_dict:
+            capacity_dict[customer.assigned_facility] = 0
+        capacity_dict[customer.assigned_facility] += customer.demand
+        if capacity_dict[customer.assigned_facility] > facilities[customer.assigned_facility].max_capacity:
+            print("Facility {0} capacity exceeded. Current: {1}, Max: {2}".format(customer.assigned_facility, capacity_dict[customer.assigned_facility], facilities[customer.assigned_facility].max_capacity))
+            return False
+    return True
+
 def generate_caches():
     cachelist = [
         "./data/fl_3_1",

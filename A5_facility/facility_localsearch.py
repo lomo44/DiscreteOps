@@ -79,7 +79,7 @@ def facility_swap(facilities, customers, facility_cache, opened_facility_index):
         possible_facility = get_possible_facilities(customers[pick_CA], facilities)
         while len(possible_facility) > 0:
             pick_FA = random.sample(possible_facility,1)[0]
-            if facilities[pick_FA].capacity >= customers[pick_CA].demand:
+            if facilities[pick_FA].max_capacity >= customers[pick_CA].demand:
                 if len(facilities[pick_FA].customers) == 0:
                     G_FB = pick_FA
                     G_CB = -1
@@ -88,7 +88,7 @@ def facility_swap(facilities, customers, facility_cache, opened_facility_index):
                     possible_CB = set(range(len(facilities[pick_FA].customers)))
                     while len(possible_CB) >0:
                         pick_FB = random.sample(possible_CB,1)[0]
-                        if check_swappable(customers[pick_FA],customers[facilities[pick_FA].customers[pick_FB]]):
+                        if check_swappable(customers[pick_CA],customers[facilities[pick_FA].customers[pick_FB]]):
                             G_FB = pick_FA
                             G_CB = customers[facilities[pick_FA].customers[pick_FB]].index
                             break

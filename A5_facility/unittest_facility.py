@@ -67,7 +67,7 @@ class test_util(unittest.TestCase):
         self.assertAlmostEqual(cost, get_cost_and_capacity(deepcopy(self.facilities),self.customers,self.caches),3)
 class test_localsearch(unittest.TestCase):
     def setUp(self):
-        facilities, customers = parse_input_from_file("./data/fl_16_1")
+        facilities, customers = parse_input_from_file("./data/fl_100_1")
         self.facilities = facilities
         self.customers = customers
         self.greedy_facilities = deepcopy(facilities)
@@ -88,7 +88,8 @@ class test_localsearch(unittest.TestCase):
             for customer in customer_changes:
                 new_customers[customer].assigned_facility = customer_changes[customer][1]
             newcost = get_cost_and_capacity(new_facilities, new_customers, self.caches)
-            self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=1)
+            self.assertTrue(check_solution_valid(new_facilities, new_customers), msg="Solution Invalid")
+            self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=0)
             new_diff_dict = {}
             for facility in new_facilities:
                 if facility.capacity - self.greedy_facilities[facility.index].capacity != 0:
@@ -107,8 +108,12 @@ class test_localsearch(unittest.TestCase):
                 new_customers[customer].assigned_facility = customer_changes[customer][1]
 
             newcost = get_cost_and_capacity(new_facilities, new_customers, self.caches)
+            print(facility_changes)
+            print(customer_changes)
+            self.assertTrue(check_solution_valid(new_facilities,new_customers), msg="Solution Invalid")
+            self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=0)
 
-            self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=1)
+
 
             new_diff_dict = {}
             for facility in new_facilities:

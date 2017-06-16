@@ -126,8 +126,8 @@ def facility_SA(facilities, customers, facility_cache):
             if current_cost + delta_cost < global_cost:
                 global_solution = generate_output_array_from_solution(current_cost+delta_cost,customers)
                 global_cost = current_cost+delta_cost
-                cost = get_cost_and_capacity(deepcopy(original_facilities), customers, facility_cache)
-                assert abs(global_cost - cost) <= 10
+                # cost = get_cost_and_capacity(deepcopy(original_facilities), customers, facility_cache)
+                # assert abs(global_cost - cost) <= 10
                 print("Cost: {0}, Iteration: {1}, Average Delta: {2}".format(global_cost, iteration/max_iteration, average_delta))
             current_cost += delta_cost
         iteration+=1
