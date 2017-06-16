@@ -76,7 +76,9 @@ def facility_swap(facilities, customers, facility_cache, opened_facility_index):
 
     while len(possible_customer_A) > 0:
         pick_CA = random.sample(possible_customer_A,1)[0]
-        possible_facility = get_possible_facilities(customers[pick_CA], facilities)
+        possible_facility = set(range(len(facilities)))
+        possible_facility.remove(customers[pick_CA].assigned_facility)
+        #impossible_facility = set(range(len(facilities)))
         while len(possible_facility) > 0:
             pick_FA = random.sample(possible_facility,1)[0]
             if facilities[pick_FA].max_capacity >= customers[pick_CA].demand:
