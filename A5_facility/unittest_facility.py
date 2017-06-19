@@ -88,6 +88,7 @@ class test_localsearch(unittest.TestCase):
             for customer in customer_changes:
                 new_customers[customer].assigned_facility = customer_changes[customer][1]
             newcost = get_cost_and_capacity(new_facilities, new_customers, self.caches)
+            self.assertTrue(check_solution_valid(new_facilities, new_customers), msg="Solution Invalid")
             self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=0)
             new_diff_dict = {}
             for facility in new_facilities:
@@ -107,8 +108,12 @@ class test_localsearch(unittest.TestCase):
                 new_customers[customer].assigned_facility = customer_changes[customer][1]
 
             newcost = get_cost_and_capacity(new_facilities, new_customers, self.caches)
-
+            print(facility_changes)
+            print(customer_changes)
+            self.assertTrue(check_solution_valid(new_facilities,new_customers), msg="Solution Invalid")
             self.assertAlmostEqual(newcost - self.greedyCost, delta_cost, places=0)
+
+
 
             new_diff_dict = {}
             for facility in new_facilities:

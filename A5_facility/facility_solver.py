@@ -55,21 +55,22 @@ def facility_SA(facilities, customers, facility_cache):
     build_facility_customer_list(facilities,customers)
 
     initial_temperature_dict = {
+        "50_200" : 2000,
         "200_800" : 1500,
         "500_3000": 2000, # need to tune this
-        "100_1000": 1500,
+        "100_1000": 2000,
         "1000_1500": 1500,
         "2000_2000": 1200
     }
     initial_iteration_dict = {
-        "25_50": 10,
-        "50_200": 24000000,
-        "100_100": 10,
-        "100_1000": 2000000,
-        "200_800": 24000000,
-        "500_3000": 24000000,
-        "1000_1500": 24000000,
-        "2000_2000": 24000000
+        "25_50":        10,
+        "50_200":       2500000,
+        "100_100":      10,
+        "100_1000":     2500000,
+        "200_800":      24000000,
+        "500_3000":     24000000,
+        "1000_1500":    24000000,
+        "2000_2000":    24000000
     }
     temeperature_key = str(len(facilities))+"_"+str(len(customers))
     max_iteration = 24000000
@@ -126,8 +127,8 @@ def facility_SA(facilities, customers, facility_cache):
             if current_cost + delta_cost < global_cost:
                 global_solution = generate_output_array_from_solution(current_cost+delta_cost,customers)
                 global_cost = current_cost+delta_cost
-                cost = get_cost_and_capacity(deepcopy(original_facilities), customers, facility_cache)
-                assert abs(global_cost - cost) <= 10
+                # cost = get_cost_and_capacity(deepcopy(original_facilities), customers, facility_cache)
+                # assert abs(global_cost - cost) <= 10
                 print("Cost: {0}, Iteration: {1}, Average Delta: {2}".format(global_cost, iteration/max_iteration, average_delta))
             current_cost += delta_cost
         iteration+=1
