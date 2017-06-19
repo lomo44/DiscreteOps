@@ -1,0 +1,12 @@
+{
+    "python.unitTest.unittestArgs": [
+        "-v",
+        "-s",
+        ".\\A6_vrp",
+        "-p",
+        "*_test.py",
+        "-t",
+        ".\\A6_vrp"
+    ],
+    "python.unitTest.unittestEnabled": true
+}
