@@ -1,6 +1,7 @@
 # utility function sets for vrp problem
 from collections import namedtuple
-
+from vrp_structs import vrp_problem_context,vrp_vehicle_list
+from vrp_cache import vrp_cache
 Customer = namedtuple("Customer", ['index', 'demand', 'x', 'y'])
 
 
@@ -23,6 +24,29 @@ def parse_input_data_from_string(input_data):
 
     #the depot is always the first customer in the input
     depot = customers[0]
-    return depot, vehicle_count, vehicle_capacity, customers
+    return_context = vrp_problem_context()
+    return_context.depot = depot
+    return_context.vehicle_list = vrp_vehicle_list(vehicle_count,vehicle_capacity)
+    return_context.customers = customers
 
+    return return_context
+
+def check_solution_valid(input_problem_context:vrp_problem_context, vehicle_list:vrp_vehicle_list):
+    for vehicle in vehicle_list.vehicle_schedule:
+        current_demands = sum(customer.demand for customer in vehicle)
+        if current_demands > vehicle_list.vehicle_capacity:
+            return False
+    return True
+
+def get_solution_cost(input_problem_context:vrp_problem_context, vehicle_list:vrp_vehicle_list, problem_cache:vrp_cache):
+    return_cost = 0
+    for vehicle in vehicle_list.vehicle_schedule:
+        if len(vehicle) >= 1:
+            for index in range(len(vehicle)-1):
+                return_cost += problem_cache.get_distance_between_customers(vehicle[index],vehicle[index+1])
+            return_cost += problem_cache.get_distance_between_customers(0,1)
+            return_cost += problem_cache.get_distance_between_customers(0,-1)
+    return return_cost
+
+        
     
