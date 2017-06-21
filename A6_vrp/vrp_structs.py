@@ -7,7 +7,7 @@ class vrp_solution():
         self.current_capacity = []
         self.current_cost = 0
         for index in range(vehicle_count):
-            self.vehicle_schedule.append([])
+            self.vehicle_schedule.append([0])
     def get_vehicle_schedule(self, vehicle_index):
         return self.vehicle_schedule[vehicle_index]
     def get_schedule_capacity(self,start_index, end_index, vehicle_index, customers):
@@ -25,8 +25,10 @@ class vrp_solution():
 class vrp_problem_context():
     def __init__(self):
         self.depot = None
-        self.vehicle_list = None
+        self.vehicle_count = None
+        self.vehicle_max_capacity = None
         self.customers = None
+
     
 
 

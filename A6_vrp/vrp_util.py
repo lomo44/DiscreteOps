@@ -26,7 +26,8 @@ def parse_input_data_from_string(input_data):
     depot = customers[0]
     return_context = vrp_problem_context()
     return_context.depot = depot
-    return_context.vehicle_list = vrp_solution(vehicle_count, vehicle_capacity)
+    return_context.vehicle_count = vehicle_count
+    return_context.vehicle_max_capacity = vehicle_capacity
     return_context.customers = customers
 
     return return_context
