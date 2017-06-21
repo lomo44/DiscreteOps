@@ -1,6 +1,6 @@
 import unittest
 from vrp_util import parse_input_data_from_file
-from vrp_structs import vrp_vehicle_list
+from vrp_structs import vrp_solution
 from vrp_cache import vrp_cache,length
 import os
 # unit test for vrp function
@@ -10,7 +10,7 @@ class test_vrp_util(unittest.TestCase):
         self.problem_context = parse_input_data_from_file("./data/vrp_5_4_1")
     def test_parse_input_file(self):
         self.assertEqual(len(self.problem_context.customers),5)
-        self.assertIsInstance(self.problem_context.vehicle_list, vrp_vehicle_list)
+        self.assertIsInstance(self.problem_context.vehicle_list, vrp_solution)
         self.assertEqual(self.problem_context.vehicle_list.vehicle_capacity, 10)
         self.assertEqual(self.problem_context.vehicle_list.vehicle_count, 4)
     

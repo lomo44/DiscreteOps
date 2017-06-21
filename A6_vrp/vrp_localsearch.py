@@ -1,35 +1,212 @@
-from vrp_structs import vrp_vehicle_list,vrp_problem_context
+from vrp_structs import vrp_solution, vrp_problem_context
+from vrp_cache import vrp_cache
 import random
+from enum import Enum
 
-def vrp_swap_feasibility_check(swap_A,swap_B,is_SwapA_Depot, is_SwapB_Depot, vrp_vehicle_list):
-    return -1
 
-def vrp_depot_check(index,input_list:vrp_vehicle_list):
-    current_index = 0
-    current_vehicle = 0
-    while current_index < index:
-        current_index+=1
-        if current_index > index:
-            return True
+class vrp_local_search_type(Enum):
+    vrp_swap = 0
+    vrp_move = 1
+    vrp_trade = 3
+
+
+class vrp_local_search_context(object):
+    def __init__(self, local_search_type: vrp_local_search_type):
+        if local_search_type == vrp_local_search_type.vrp_swap:
+            self.estimate_function = vrp_local_search_swap_estimate
+            self.apply_function = vrp_local_search_swap_apply
+        elif local_search_type == vrp_local_search_type.vrp_trade:
+            self.estimate_function = vrp_local_search_trade_estimate
+            self.apply_function = vrp_local_search_trade_apply
         else:
-            current_index+=len(input_list.vehicle_schedule[current_vehicle])
-            if current_index > index:
-                return False
-            else:
-                current_vehicle+=1
-    return True
+            self.estimate_function = None
+            self.apply_function = None
+        self.structure_changes = {}
+        self.cost_delta = 0
 
-def vrp_swap_estimate(input_list:vrp_vehicle_list, problem_context:vrp_problem_context):
-    posible_picks_a = set(range(len(problem_context.customers)+problem_context.vehicle_list.vehicle_count))
-    while len(posible_picks_a) != 0:
-        pick_A = random.sample(posible_picks_a,1)
-        posible_picks_b = set(range(len(problem_context.customers)+problem_context.vehicle_list.vehicle_count))
-        posible_picks_b.remove(pick_A)
-        pick_a_depot_check = vrp_depot_check(pick_A, input_list)
-        while len(posible_picks_b) != 0:
-            pick_B = random.sample(posible_picks_b,1)
-            pick_b_depot_check = vrp_depot_check(pick_B, input_list)
-            if pick_a_depot_check is True and pick_b_depot_check is True:
-                break
-            else:
-                pass
+    def has_changes(self):
+        return len(self.structure_changes) != 0
+
+    def get_estimate(self, vehicle_list, problem_context, problem_cache):
+        self.estimate_function(vehicle_list, problem_context, self, problem_cache)
+
+    def apply_changes(self, solution: vrp_solution):
+        if self.apply_function is not None:
+            self.apply_function(solution, self)
+
+
+def vrp_local_search_swap_estimate(vehicle_list: vrp_solution, problem_context,
+                                   search_context: vrp_local_search_context, problem_cache: vrp_cache):
+    vehicle_picks = set(range(len(vehicle_list.vehicle_count)))
+    while len(vehicle_picks) != 0:
+        vehicle_pick = random.sample(vehicle_picks, 1)
+        vehicle_picks.remove(vehicle_pick)
+        vehicle_schedule = vehicle_list.vehicle_schedule[vehicle_pick]
+        if len(vehicle_schedule) > 1:
+            swap_selection = set(range(len(vehicle_schedule)))
+            swap_lower = random.sample(swap_selection, 1)
+            swap_selection.remove(swap_lower)
+            swap_upper = random.sample(swap_selection, 1)
+            previous_cost = \
+                problem_cache.get_distance_between_customers(vehicle_schedule[swap_lower], vehicle_schedule[
+                    (swap_lower + len(vehicle_schedule) - 1) % len(vehicle_schedule)]) + \
+                problem_cache.get_distance_between_customers(vehicle_schedule[swap_upper], vehicle_schedule[
+                    (swap_upper + len(vehicle_schedule) + 1) % len(vehicle_schedule)])
+            current_cost = \
+                problem_cache.get_distance_between_customers(vehicle_schedule[swap_lower], vehicle_schedule[
+                    (swap_upper + len(vehicle_schedule) + 1) % len(vehicle_schedule)]) + \
+                problem_cache.get_distance_between_customers(vehicle_schedule[swap_lower], vehicle_schedule[
+                    (swap_upper + len(vehicle_schedule) - 1) % len(vehicle_schedule)])
+            search_context.cost_delta = current_cost - previous_cost
+            search_context.structure_changes[vehicle_pick] = (swap_lower, swap_upper)
+
+
+def vrp_local_search_swap_apply(current_solution: vrp_solution, search_context: vrp_local_search_context):
+    if len(search_context.structure_changes) != 0:
+        for vehicle in search_context.structure_changes:
+            lower = search_context.structure_changes[vehicle][0]
+            upper = search_context.structure_changes[vehicle][1]
+            target_schedule = current_solution.vehicle_schedule[vehicle]
+            if lower < upper:
+                target_schedule[lower:upper + 1] = target_schedule[lower:upper + 1][::-1]
+            if lower > upper:
+                while lower != len(target_schedule) and upper != -1:
+                    target_schedule[lower], target_schedule[upper] = target_schedule[upper], target_schedule[lower]
+                    lower += 1
+                    upper -= 1
+                if lower != len(target_schedule):
+                    target_schedule[lower:len(target_schedule)] = target_schedule[lower:len(target_schedule)][::-1]
+                if upper != -1:
+                    target_schedule[0:upper + 1] = target_schedule[0:upper + 1][::-1]
+            current_solution.current_cost += search_context.cost_delta
+            break
+
+
+def vrp_local_search_move_estimate(vehicle_list: vrp_solution, problem_context,
+                                   search_context: vrp_local_search_context, problem_cache: vrp_cache):
+    source_vehicles_set = set(range(len(vehicle_list.vehicle_count)))
+    while len(source_vehicles_set) != 0:
+        src_vehicle_pick = random.sample(source_vehicles_set, 1)
+        source_vehicles_set.remove(src_vehicle_pick)
+        src_vehicle_customers = vehicle_list.vehicle_schedule[src_vehicle_pick]
+        source_vehicle_customers_set = set(range(len(src_vehicle_customers)))
+        while len(source_vehicle_customers_set) != 0:
+            src_vehicle_customer = random.sample(source_vehicle_customers_set, 1)
+            source_vehicle_customers_set.remove(src_vehicle_customer)
+
+            dst_vehicles_set = set(range(len(vehicle_list.vehicle_count)))
+            dst_vehicles_set.remove(src_vehicle_pick)
+            while len(dst_vehicles_set) != 0:
+                dst_vehicle_pick = random.sample(dst_vehicles_set, 1)
+                dst_vehicles_set.remove(dst_vehicle_pick)
+                dst_vehicle_customers = vehicle_list.vehicle_schedule[dst_vehicle_pick]
+                if vehicle_list.vehicle_capacity - vehicle_list.current_capacity[dst_vehicle_pick] >= \
+                        problem_context.customers[src_vehicle_customers[src_vehicle_customer]].demand:
+                    search_context.structure_changes = (src_vehicle_pick, src_vehicle_customer, dst_vehicle_pick)
+                    search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                        src_vehicle_customers[src_vehicle_customer], src_vehicle_customers[
+                            (src_vehicle_customers[src_vehicle_customer] + len(src_vehicle_customers) - 1) % len(
+                                src_vehicle_customers)])
+                    search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                        src_vehicle_customers[src_vehicle_customer], src_vehicle_customers[
+                            (src_vehicle_customers[src_vehicle_customer] + len(src_vehicle_customers) + 1) % len(
+                                src_vehicle_customers)])
+                    search_context.cost_delta += problem_cache.get_distance_between_customers(
+                        dst_vehicle_customers[0], src_vehicle_customers[src_vehicle_customer])
+                    search_context.cost_delta += problem_cache.get_distance_between_customers(
+                        dst_vehicle_customers[-1], src_vehicle_customers[src_vehicle_customer])
+                    return
+
+
+def vrp_local_search_move_apply(current_solution: vrp_solution, search_context: vrp_local_search_context):
+    if search_context.has_changes():
+        src_vehicle_pick = search_context.structure_changes[0]
+        src_vehicle_customer = search_context.structure_changes[1]
+        dst_vehicle_pick = search_context.structure_changes[2]
+
+        current_solution.vehicle_schedule[dst_vehicle_pick].append(
+            current_solution.vehicle_schedule[src_vehicle_pick][src_vehicle_customer])
+        del current_solution.vehicle_schedule[src_vehicle_pick][src_vehicle_customer]
+
+
+def vrp_local_search_trade_estimate(vehicle_list: vrp_solution, problem_context,
+                                    search_context: vrp_local_search_context, problem_cache: vrp_cache):
+    def check_swappable(src_vehicle, src_customer, dst_vehicle, dst_customer):
+        if vehicle_list.current_capacity[src_vehicle] - problem_context.customers[src_customer].demand + \
+                problem_context.customers[dst_customer].demand <= vehicle_list.vehicle_capacity \
+                and vehicle_list.current_capacity[dst_vehicle] - problem_context.customers[dst_customer].demand \
+                        + problem_context.customers[src_customer].demand <= vehicle_list.vehicle_capacity:
+            return True
+        return False
+
+    src_vehicles_set = set(range(len(vehicle_list.vehicle_count)))
+    while len(src_vehicles_set) != 0:
+        src_vehicle_pick = random.sample(src_vehicles_set, 1)
+        src_vehicles_set.remove(src_vehicle_pick)
+        src_vehicle_customers = vehicle_list.vehicle_schedule[src_vehicle_pick]
+        src_vehicle_customers_set = set(range(len(src_vehicle_customers)))
+        while len(src_vehicle_customers_set) != 0:
+            src_vehicle_customer = random.sample(src_vehicle_customers_set, 1)
+            src_vehicle_customers_set.remove(src_vehicle_customer)
+
+            dst_vehicles_set = set(range(len(vehicle_list.vehicle_count)))
+            dst_vehicles_set.remove(src_vehicle_pick)
+            while len(dst_vehicles_set) != 0:
+                dst_vehicle_pick = random.sample(dst_vehicles_set, 1)
+                dst_vehicles_set.remove(dst_vehicle_pick)
+                dst_vehicle_customers = vehicle_list.vehicle_schedule[dst_vehicle_pick]
+                dst_vehicle_customers_set = set(range(len(dst_vehicle_customers)))
+                while len(dst_vehicle_customers_set) != 0:
+                    dst_vehicle_customer = random.sample(dst_vehicle_customers_set, 1)
+                    src_vehicle_customers_set.remove(dst_vehicle_customer)
+
+                    if check_swappable(src_vehicle_pick, src_vehicle_customers[src_vehicle_customer],
+                                       dst_vehicle_pick, dst_vehicle_customers[dst_vehicle_customer]):
+                        search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                            src_vehicle_customers[src_vehicle_customer], src_vehicle_customers[
+                                (src_vehicle_customers[src_vehicle_customer] + len(src_vehicle_customers) - 1) % len(
+                                    src_vehicle_customers)])
+                        search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                            src_vehicle_customers[src_vehicle_customer], src_vehicle_customers[
+                                (src_vehicle_customers[src_vehicle_customer] + len(src_vehicle_customers) + 1) % len(
+                                    src_vehicle_customers)])
+                        search_context.cost_delta += problem_cache.get_distance_between_customers(
+                            dst_vehicle_customers[dst_vehicle_customer], src_vehicle_customers[
+                                (src_vehicle_customers[src_vehicle_customer] + len(src_vehicle_customers) - 1) % len(
+                                    src_vehicle_customers)])
+                        search_context.cost_delta += problem_cache.get_distance_between_customers(
+                            dst_vehicle_customers[dst_vehicle_customer], src_vehicle_customers[
+                                (src_vehicle_customers[src_vehicle_customer] + len(src_vehicle_customers) + 1) % len(
+                                    src_vehicle_customers)])
+                        search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                            dst_vehicle_customers[dst_vehicle_customer], dst_vehicle_customers[
+                                (dst_vehicle_customers[dst_vehicle_customer] + len(dst_vehicle_customers) - 1) % len(
+                                    dst_vehicle_customers)])
+                        search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                            dst_vehicle_customers[dst_vehicle_customer], dst_vehicle_customers[
+                                (dst_vehicle_customers[dst_vehicle_customer] + len(dst_vehicle_customers) + 1) % len(
+                                    dst_vehicle_customers)])
+                        search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                            src_vehicle_customers[src_vehicle_customer], dst_vehicle_customers[
+                                (dst_vehicle_customers[dst_vehicle_customer] + len(dst_vehicle_customers) - 1) % len(
+                                    dst_vehicle_customers)])
+                        search_context.cost_delta -= problem_cache.get_distance_between_customers(
+                            src_vehicle_customers[src_vehicle_customer], dst_vehicle_customers[
+                                (dst_vehicle_customers[dst_vehicle_customer] + len(dst_vehicle_customers) + 1) % len(
+                                    dst_vehicle_customers)])
+                        search_context.structure_changes = (
+                            src_vehicle_pick, src_vehicle_customer, dst_vehicle_pick, dst_vehicle_customer)
+                        return
+
+
+def vrp_local_search_trade_apply(current_solution: vrp_solution, search_context: vrp_local_search_context):
+    if len(search_context.structure_changes) != 0:
+        src_vehicle_pick = search_context.structure_changes[0]
+        src_vehicle_customer = search_context.structure_changes[1]
+        dst_vehicle_pick = search_context.structure_changes[2]
+        dst_vehicle_customer = search_context.structure_changes[3]
+
+        current_solution.vehicle_schedule[src_vehicle_pick][src_vehicle_customer], \
+        current_solution.vehicle_schedule[dst_vehicle_pick][dst_vehicle_customer] = \
+            current_solution.vehicle_schedule[dst_vehicle_pick][dst_vehicle_customer], \
+            current_solution.vehicle_schedule[src_vehicle_pick][src_vehicle_customer]
