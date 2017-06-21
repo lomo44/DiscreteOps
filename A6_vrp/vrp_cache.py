@@ -1,6 +1,6 @@
 import math
 from array import array
-from vrp_structs import vrp_problem_context
+
 
 
 
@@ -12,7 +12,7 @@ class vrp_cache(object):
     def __init__(self):
         self.customer_to_customer_cache = []
 
-    def generate_cache(self, problem_context:vrp_problem_context):
+    def generate_cache(self, problem_context):
         for from_index in range(len(problem_context.customers)):
             cache_entry = array('f')
             for to_index in range(from_index,len(problem_context.customers)):
