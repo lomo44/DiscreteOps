@@ -18,6 +18,9 @@ class vrp_local_search_context(object):
         elif local_search_type == vrp_local_search_type.vrp_trade:
             self.estimate_function = vrp_local_search_trade_estimate
             self.apply_function = vrp_local_search_trade_apply
+        elif local_search_type == vrp_local_search_type.vrp_move:
+            self.estimate_function = vrp_local_search_move_estimate
+            self.apply_function = vrp_local_search_move_apply
         else:
             self.estimate_function = None
             self.apply_function = None
@@ -27,26 +30,25 @@ class vrp_local_search_context(object):
     def has_changes(self):
         return len(self.structure_changes) != 0
 
-    def get_estimate(self, vehicle_list, problem_context, problem_cache):
-        self.estimate_function(vehicle_list, problem_context, self, problem_cache)
+    def get_estimate(self, current_solution, problem_context, problem_cache):
+        self.estimate_function(current_solution, problem_context, self, problem_cache)
 
-    def apply_changes(self, solution: vrp_solution):
+    def apply_changes(self, solution : vrp_solution):
         if self.apply_function is not None:
             self.apply_function(solution, self)
 
 
-def vrp_local_search_swap_estimate(vehicle_list: vrp_solution, problem_context,
-                                   search_context: vrp_local_search_context, problem_cache: vrp_cache):
-    vehicle_picks = set(range(len(vehicle_list.vehicle_count)))
+def vrp_local_search_swap_estimate(vehicle_list: vrp_solution, problem_context,search_context: vrp_local_search_context, problem_cache: vrp_cache):
+    vehicle_picks = set(range(vehicle_list.vehicle_count))
     while len(vehicle_picks) != 0:
-        vehicle_pick = random.sample(vehicle_picks, 1)
+        vehicle_pick = random.sample(vehicle_picks, 1)[0]
         vehicle_picks.remove(vehicle_pick)
         vehicle_schedule = vehicle_list.vehicle_schedule[vehicle_pick]
         if len(vehicle_schedule) > 1:
             swap_selection = set(range(len(vehicle_schedule)))
-            swap_lower = random.sample(swap_selection, 1)
+            swap_lower = random.sample(swap_selection, 1)[0]
             swap_selection.remove(swap_lower)
-            swap_upper = random.sample(swap_selection, 1)
+            swap_upper = random.sample(swap_selection, 1)[0]
             previous_cost = \
                 problem_cache.get_distance_between_customers(vehicle_schedule[swap_lower], vehicle_schedule[
                     (swap_lower + len(vehicle_schedule) - 1) % len(vehicle_schedule)]) + \
@@ -59,6 +61,7 @@ def vrp_local_search_swap_estimate(vehicle_list: vrp_solution, problem_context,
                     (swap_upper + len(vehicle_schedule) - 1) % len(vehicle_schedule)])
             search_context.cost_delta = current_cost - previous_cost
             search_context.structure_changes[vehicle_pick] = (swap_lower, swap_upper)
+            break
 
 
 def vrp_local_search_swap_apply(current_solution: vrp_solution, search_context: vrp_local_search_context):

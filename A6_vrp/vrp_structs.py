@@ -8,6 +8,7 @@ class vrp_solution():
         self.current_cost = 0
         for index in range(vehicle_count):
             self.vehicle_schedule.append([0])
+            self.current_capacity.append(self.vehicle_capacity)
     def get_vehicle_schedule(self, vehicle_index):
         return self.vehicle_schedule[vehicle_index]
     def get_schedule_capacity(self,start_index, end_index, vehicle_index, customers):
@@ -21,7 +22,18 @@ class vrp_solution():
                 return_cost += problem_cache.get_distance_between_customers(self.vehicle_schedule[vehicle_index][index],\
                 self.vehicle_schedule[vehicle_index][index+1])
             return return_cost
-        
+
+    def formate_schedule(self):
+        for schedule in self.vehicle_schedule:
+            while schedule[0] != 0:
+                schedule.append(schedule.pop(0))
+    def generate_output_string(self):
+        self.formate_schedule()
+        outputData = '%.2f' % self.current_cost + ' ' + str(0) + '\n'
+        for v in self.vehicle_schedule:
+            outputData += ' '.join(map(lambda x: str(x), v))
+            outputData += ' ' + '0' + '\n'
+        return outputData
 class vrp_problem_context():
     def __init__(self):
         self.depot = None
