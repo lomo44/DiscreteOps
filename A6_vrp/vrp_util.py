@@ -33,9 +33,11 @@ def parse_input_data_from_string(input_data):
     return return_context
 
 def check_solution_valid(input_problem_context:vrp_problem_context, vehicle_list:vrp_solution):
-    for vehicle in vehicle_list.vehicle_schedule:
+    for index, vehicle in enumerate(vehicle_list.vehicle_schedule):
         current_demands = sum(input_problem_context.customers[customer].demand for customer in vehicle)
         if current_demands > vehicle_list.vehicle_capacity:
+            return False
+        if input_problem_context.vehicle_max_capacity - vehicle_list.current_capacity[index] != current_demands:
             return False
     return True
 
@@ -48,5 +50,8 @@ def get_solution_cost(input_problem_context:vrp_problem_context, vehicle_list:vr
 
     return return_cost
 
-        
-    
+
+if __name__ == "__main__":
+    a = [1,2,3]
+    a.insert(1,4)
+    print(a)

@@ -1,3 +1,4 @@
+from vrp_cache import vrp_cache
 
 class vrp_solution():
     def __init__(self, vehicle_count, vehicle_capacity):
@@ -22,13 +23,30 @@ class vrp_solution():
                 return_cost += problem_cache.get_distance_between_customers(self.vehicle_schedule[vehicle_index][index],\
                 self.vehicle_schedule[vehicle_index][index+1])
             return return_cost
+    def get_remove_delta(self, vehicle_index, customer_position_index, problem_cache:vrp_cache):
+        schedule = self.vehicle_schedule[vehicle_index]
+        schedule_size = len(schedule)
+        return_cost = 0
+        return_cost -= problem_cache.get_distance_between_customers(schedule[customer_position_index], schedule[(customer_position_index + 1) % schedule_size])
+        return_cost -= problem_cache.get_distance_between_customers(schedule[customer_position_index], schedule[(customer_position_index - 1) % schedule_size])
+        return_cost += problem_cache.get_distance_between_customers(schedule[(customer_position_index + 1) % schedule_size],
+                                                                    schedule[(customer_position_index - 1) % schedule_size])
+        return  return_cost
+    def get_insert_delta(self, vehicle_index, customer_index, insert_position, problem_cache:vrp_cache):
+        schedule = self.vehicle_schedule[vehicle_index]
+        schedule_size = len(schedule)
+        return_cost = 0
+        return_cost -= problem_cache.get_distance_between_customers(schedule[insert_position % schedule_size], schedule[(insert_position - 1) % schedule_size])
+        return_cost += problem_cache.get_distance_between_customers(customer_index,schedule[insert_position % schedule_size])
+        return_cost += problem_cache.get_distance_between_customers(customer_index,schedule[(insert_position - 1) % schedule_size])
+        return return_cost
 
-    def formate_schedule(self):
+    def format_schedule(self):
         for schedule in self.vehicle_schedule:
             while schedule[0] != 0:
                 schedule.append(schedule.pop(0))
     def generate_output_string(self):
-        self.formate_schedule()
+        self.format_schedule()
         outputData = '%.2f' % self.current_cost + ' ' + str(0) + '\n'
         for v in self.vehicle_schedule:
             outputData += ' '.join(map(lambda x: str(x), v))
