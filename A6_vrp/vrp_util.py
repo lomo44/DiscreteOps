@@ -9,7 +9,7 @@ def parse_input_data_from_file(input_file):
     with open(input_file, 'r') as _file:
         return parse_input_data_from_string(_file.read())
 
-def parse_input_data_from_string(input_data):
+def parse_input_data_from_string(input_data) -> vrp_problem_context:
     lines = input_data.split('\n')
 
     parts = lines[0].split()
